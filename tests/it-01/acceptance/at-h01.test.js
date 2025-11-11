@@ -20,7 +20,7 @@ describe("HU-01. Pruebas de aceptación del registro de usuario", () => {
   test("E1- Válido; Debe registrar un nuevo usuario en Firebase", async () => {
     const result = await userService.signUp(email, alias, password);
     expect(result).toBe(true);
-    const users = await getRegisteredUsers();
+    const users = await userService.getRegisteredUsers();
     expect(users.some(u => u.email === email)).toBe(true);
   });
 
