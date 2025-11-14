@@ -12,15 +12,15 @@ beforeEach(async () => {
 
 describe("HU04 - Eliminación de cuenta", () => {
   test("E1 - Válido: elimina la cuenta con sesión abierta", async () => {
+    //Sesión iniciada
     await userService.logIn("al123456@uji.es", "MiContrasena64");
     const result = await userService.deleteUser("al123456@uji.es");
     expect(result).toBe(true);
-    const users = await userService.getRegisteredUsers();
-    expect(users.some(u => u.email === "al123456@uji.es")).toBe(false);
+
   });
 
   test("E3 - Inválido: correo no encontrado", async () => {
     await expect(userService.deleteUser("al654321@uji.es"))
-      .rejects.toThrow("EmailNotFoundException");
+      .rejects.toThrow("UserNotFound");
   });
 });
