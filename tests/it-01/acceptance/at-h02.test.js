@@ -5,6 +5,11 @@ import {UserSession} from "../../../src/domain/session/UserSession";
 let userService;
 beforeAll(async () => {
     userService = UserService.getInstance();
+    try {
+      await userService.signUp("al123456@uji.es", "Maria", "MiContrasena64");
+    } catch (e) {
+      /* ignore if already registered */
+    }
 });
 beforeEach(async () => {
 //  await userService.signUp("al123456@uji.es", "Maria", "MiContrasena64");
@@ -13,8 +18,8 @@ beforeEach(async () => {
 describe("HU02 - Inicio de sesión", () => {
   test("E1 - Válido: inicia sesión correctamente", async () => {
     const result = await userService.logIn("al123456@uji.es", "MiContrasena64");
-    expect(result.sessionOpen).toBe(typeof UserSession);
-    userService.logOut();
+    expect(result).toBeInstanceOf(UserSession);
+    //await userService.logOut();
   });
 
   test("E2 - Inválido: contraseña incorrecta, no inicia sesión", async () => {

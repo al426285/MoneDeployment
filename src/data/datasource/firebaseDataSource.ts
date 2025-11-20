@@ -13,9 +13,6 @@ import {
 } from "firebase/firestore";
 import { firebaseApp } from "../../core/config/firebaseConfig";
 import { User } from "../../domain/model/User";
-import {
- 
-} from "firebase/auth";
 
 const db = getFirestore(firebaseApp);
 
@@ -42,13 +39,14 @@ export class FirebaseDataSource {
     return user;
   }
 
-  async saveUser(userId: string, User: User): Promise<string> {
+  // rename parameter to avoid shadowing the imported class
+  async saveUser(userId: string, user: User): Promise<string> {
     const ref = doc(db, "users", userId);
     await setDoc(
       ref,
       {
-        email: User.getEmail(),
-        nickname: User.getNickname(),
+        email: user.getEmail(),
+        nickname: user.getNickname(),
         createdAt: serverTimestamp(),
       },
       { merge: true }
