@@ -21,6 +21,38 @@ import { UserSession } from "../../domain/session/UserSession";
 
 export class FirebaseAuthAdapter implements AuthProvider {
   private auth = getAuth(firebaseApp);
+  
+
+  async logIn(email: string, password: string): Promise<UserSession> {
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        this.auth,
+        email,
+        password
+      );
+      const token = await userCredential.user.getIdToken();
+    
+      const session = new UserSession(userCredential.user.uid, token);
+      session.saveToCache(); // utiliza el helper centralizado
+
+      return session;
+    } catch (Error) {
+      throw handleAuthError(Error as FirebaseError);
+    }
+  }
+
+  async googleSignIn(): Promise<UserSession> {
+    const provider = new GoogleAuthProvider();
+    try {
+      const userCredential = await signInWithPopup(this.auth, provider);
+      const token = await userCredential.user.getIdToken();
+      const session = new UserSession(userCredential.user.uid, token);
+      return session;
+    } catch (Error) {
+            throw handleAuthError(Error as FirebaseError);
+    }
+  }
+
   async signUp(user: User, password: string): Promise<string> {
     try {
       const userCredential = await createUserWithEmailAndPassword(

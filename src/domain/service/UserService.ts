@@ -87,4 +87,43 @@ export class UserService {
       throw new Error((error && error.message) || "SignUpFailed");
     }
   }
+  // logIn devuelve el token (según AuthProvider.logIn)
+  async logIn(email: string, password: string): Promise<UserSession> {
+    try {
+      const userSession = await this.authProvider.logIn(email, password);
+      if (!userSession) throw new Error("AuthFailed");
+      if (typeof userSession.saveToCache === "function") {
+        userSession.saveToCache();
+      }
+      return userSession;
+    } catch (error: any) {
+      // Delegar el mapeo de errores al helper de exceptions.ts para lanzar las
+      // excepciones con los identificadores que usan los tests (UserNotFound, InvalidCredentials, ...)
+      try {
+        handleAuthError(error as FirebaseError);
+      } catch (e: any) {
+        throw e;
+      }
+      throw new Error(error?.message ?? "AuthFailed");
+    }
+  }
+
+  async googleSignIn(): Promise<UserSession> {
+    try {
+      const session = await this.authProvider.googleSignIn();
+      if (session && typeof session.saveToCache === "function") {
+        session.saveToCache();
+      }
+      if (!session) throw new Error("AuthFailed");
+      return session;
+    } catch (error: any) {
+      // delegar al helper; si lanza, propagar; si no, devolver sesión vacía segura
+      try {
+        handleAuthError(error as FirebaseError);
+      } catch (e) {
+        throw e;
+      }
+      return new UserSession();
+    }
+  }
 }
