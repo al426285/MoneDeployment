@@ -4,6 +4,9 @@ import { User } from "../../domain/model/User";
 
 export class UserRepositoryFirebase implements UserRepository {
   private dataSource = new FirebaseDataSource();
+  
+  async deleteUser(userId: string): Promise<void> {
+    await this.dataSource.deleteUser(userId);
 
   async getUserById(userId: string): Promise<User | null> {
     return await this.dataSource.getUserById(userId);

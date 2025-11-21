@@ -39,6 +39,16 @@ export class UserService {
     return UserService.instance;
   }
 
+  async deleteUser(email: string): Promise<boolean> {
+    try {
+      await this.userRepository.deleteUser(email);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+
   async signUp(
     email: string,
     nickname: string,

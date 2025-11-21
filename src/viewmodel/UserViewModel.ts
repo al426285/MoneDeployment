@@ -117,10 +117,8 @@ export const useUserViewModel = (onNavigate: (path: string) => void) => {
     } finally {
       setLoading(false);
     }
-  };
 
-  return {
-    email,
+ 
     nickname,
     password,
     message,
@@ -136,4 +134,33 @@ export const useUserViewModel = (onNavigate: (path: string) => void) => {
     logInWithGoogle,
     setLoading,
   };
+  };
+const handleDeleteAccount = async () => {
+    const userService = UserService.getInstance();
+    if (!userService || typeof userService.deleteUser !== "function") {
+      setMessage("Servicio de usuario no disponible");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await userService.deleteUser(email);
+      setMessage("Cuenta eliminada con éxito.");
+      onNavigate("/signup");
+    } catch (error) {
+      const err = error as Error;
+      const msg = err?.message ?? "Error al eliminar la cuenta";
+      setMessage("Error: " + msg);
+  return {
+    email,
+    
+    loading,
+    errors,
+    
+    setMessage,
+    handleDeleteAccount,
+    setLoading,
+  };
+};
+
 };

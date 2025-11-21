@@ -23,6 +23,18 @@ export class FirebaseAuthAdapter implements AuthProvider {
   private auth = getAuth(firebaseApp);
   
 
+ async deleteUser(userId: string): Promise<void> {
+    const ref = doc(db, "users", userId);
+    try {
+      await deleteDoc(ref);
+    } catch (error) {
+      throw new Error(error as Error);
+    }
+  }
+
+
+  
+}
   async logIn(email: string, password: string): Promise<UserSession> {
     try {
       const userCredential = await signInWithEmailAndPassword(
