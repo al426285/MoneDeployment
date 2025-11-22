@@ -23,8 +23,23 @@ const firebaseApp  = initializeApp(firebaseConfig);
 //const analytics = getAnalytics(app);
 
 // Autenticación
-const auth = getAuth(firebaseApp );
+const auth = getAuth(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
 
 // Exportamos para usar en otros archivos
 export { auth, googleProvider, firebaseApp};
+
+
+/*
+// Import Firestore
+import { getFirestore } from "firebase/firestore";
+
+// Inicializar Firestore
+const db = getFirestore(firebaseApp);
+
+// Exportar db
+export { auth, googleProvider, firebaseApp, db };
+
+
+
+*/ 
