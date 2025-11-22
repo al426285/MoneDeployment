@@ -9,34 +9,18 @@ import { User } from "../model/User";
 import type { FirebaseError } from "firebase/app";
 import type { ActionCodeSettings } from "firebase/auth";
 import {
-    validatePassword,
-    isValidEmail,
-    isValidNickname,
+  validatePassword,
+  isValidEmail,
+  isValidNickname,
 } from "../../core/utils/validators";
 import { handleAuthError } from "../../core/utils/exceptions";
 
 export class UserService {
-  private buildEmailActionCodeSettings(): ActionCodeSettings | undefined {
-    try {
-      const origin = typeof window !== "undefined" && window?.location?.origin
-        ? window.location.origin
-        : typeof location !== "undefined"
-          ? location.origin
-          : "";
-      if (!origin) return undefined;
-      return {
-        url: `${origin}/email-update-confirmation`,
-        handleCodeInApp: false,
-      };
-    } catch {
-      return undefined;
-    }
-  }
   private static instance: UserService;
   private authProvider!: AuthProvider;
   private userRepository!: UserRepository;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(
     authProvider?: AuthProvider,
@@ -55,59 +39,58 @@ export class UserService {
     }
     return UserService.instance;
   }
+  async signUp(email: string, nickname: string, password: string): Promise<string> {
+    if (!isValidEmail(email)) throw new Error("InvalidEmailException");
+    if (!isValidNickname(nickname)) throw new Error("InvalidNicknameException");
+    if (!validatePassword(password)) throw new Error("InvalidPasswordException")
+    try {
+      const user = new User(email, nickname);
+      const userId = await this.authProvider.signUp(user, password);
+      await this.userRepository.saveUser(userId, user);
+      return userId;
 
-async signUp(email: string, nickname: string, password: string): Promise<string> {
-  if (!isValidEmail(email)) throw new Error("InvalidEmailException");
-  if (!isValidNickname(nickname)) throw new Error("InvalidNicknameException");
-  if (!validatePassword(password)) throw new Error("InvalidPasswordException")
-  try {
-    const user = new User(email, nickname);
-    const userId = await this.authProvider.signUp(user, password);
-    await this.userRepository.saveUser(userId, user);
-    return userId;
-
-  } catch (err) {
-    handleAuthError(err as any);
-    throw new Error("SignUpFailed"); // fallback
+    } catch (err) {
+      handleAuthError(err as any);
+      throw new Error("SignUpFailed"); // fallback
+    }
   }
-}
 
   async logIn(email: string, password: string): Promise<UserSession> {
-  try {
-    const session = await this.authProvider.logIn(email, password);
-    if (!session) throw new Error("AuthFailed");
-
-    if (typeof session.saveToCache === "function") session.saveToCache();
-
-    // cachear perfil si existe
     try {
-      const profile = await this.getUserById(session.userId);
-      if (profile) {
-        const plain = {
-          userId: session.userId,
-          email: (profile as any).getEmail ? profile.getEmail() : profile.email,
-          nickname: (profile as any).getNickname ? profile.getNickname() : profile.nickname,
-          cachedAt: Date.now(),
-        };
+      const session = await this.authProvider.logIn(email, password);
+      if (!session) throw new Error("AuthFailed");
 
-        if (typeof (UserSession as any).saveProfileToCache === "function") {
-          (UserSession as any).saveProfileToCache(plain);
-        } else {
-          localStorage.setItem("user_profile", JSON.stringify(plain));
+      if (typeof session.saveToCache === "function") session.saveToCache();
+
+      // cachear perfil si existe
+      try {
+        const profile = await this.getUserById(session.userId);
+        if (profile) {
+          const plain = {
+            userId: session.userId,
+            email: (profile as any).getEmail ? profile.getEmail() : profile.email,
+            nickname: (profile as any).getNickname ? profile.getNickname() : profile.nickname,
+            cachedAt: Date.now(),
+          };
+
+          if (typeof (UserSession as any).saveProfileToCache === "function") {
+            (UserSession as any).saveProfileToCache(plain);
+          } else {
+            localStorage.setItem("user_profile", JSON.stringify(plain));
+          }
         }
-      }
-    } catch {/* ignore profile cache errors */ }
+      } catch {/* ignore profile cache errors */ }
 
-    return session;
+      return session;
 
-  } catch (err) {
-    // deja que tu mapeador haga todo
-    handleAuthError(err as any);
+    } catch (err) {
+      // deja que tu mapeador haga todo
+      handleAuthError(err as any);
 
-    // fallback si no lanzó nada (no ocurre, pero por seguridad)
-    throw new Error("AuthError");
+      // fallback si no lanzó nada (no ocurre, pero por seguridad)
+      throw new Error("AuthError");
+    }
   }
-}
 
 
   async googleSignIn(): Promise<UserSession> {
@@ -136,9 +119,9 @@ async signUp(email: string, nickname: string, password: string): Promise<string>
           const profile = (UserSession as any).loadProfileFromCache && typeof (UserSession as any).loadProfileFromCache === "function"
             ? (UserSession as any).loadProfileFromCache()
             : (() => {
-                const raw = localStorage.getItem("user_profile");
-                return raw ? JSON.parse(raw) : null;
-              })();
+              const raw = localStorage.getItem("user_profile");
+              return raw ? JSON.parse(raw) : null;
+            })();
           if (profile) {
             email = profile.email ?? "";
             nickname = profile.nickname ?? profile.displayName ?? "";
@@ -183,8 +166,8 @@ async signUp(email: string, nickname: string, password: string): Promise<string>
       return new UserSession();
     }
   }
-  
- async deleteUser(email: string): Promise<boolean> {
+
+  async deleteUser(email: string): Promise<boolean> {
     try {
       await this.userRepository.deleteUser(email);
       return true;
@@ -306,5 +289,68 @@ async signUp(email: string, nickname: string, password: string): Promise<string>
     }
 
     return { user, emailReadOnly };
+  }
+
+  processResetParamsFromUrl(search: string) {
+    const params = new URLSearchParams(search);
+    const mode = params.get("mode") || undefined;
+    const oobCode = params.get("oobCode") || undefined;
+    const continueUrl = params.get("continueUrl") || undefined;
+
+    const result: {
+      mode?: string;
+      oobCode?: string;
+      continueUrl?: string;
+      shouldRedirect: boolean;
+      redirectQuery?: string;
+    } = {
+      mode,
+      oobCode,
+      continueUrl,
+      shouldRedirect: false,
+    };
+
+    if (mode === "resetPassword" && oobCode) {
+      const q = new URLSearchParams();
+      q.set("oobCode", oobCode);
+      if (continueUrl) q.set("continueUrl", continueUrl);
+      result.shouldRedirect = true;
+      result.redirectQuery = q.toString();
+    }
+
+    return result;
+  }
+
+
+  async changePassword(payload: {
+    currentPassword?: string;
+    newPassword: string;
+    oobCode?: string;
+  }): Promise<void> {
+    const { oobCode, currentPassword, newPassword } = payload;
+    if (!newPassword || !validatePassword(newPassword)) {
+      throw new Error("InvalidDataException");
+    }
+
+    try {
+      await this.authProvider.changeUserPassword(currentPassword ?? null, newPassword, oobCode);
+    } catch (error) {
+      handleAuthError(error as FirebaseError);
+    }
+  }
+
+  async recoverPassword(email: string): Promise<void> {
+    if (!email || !isValidEmail(email)) {
+      throw new Error("InvalidDataException");
+    }
+    const existing = await this.userRepository.getUserByEmail(email);
+    console.log(existing);
+    if (!existing) throw new Error("UserNotFound");
+    try {
+      await this.authProvider.sendRecoveryEmail(email);
+    } catch (error) {
+      console.error("Error sending recovery email:", error);
+      handleAuthError(error as FirebaseError);
+    }
   }
 }

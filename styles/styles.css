@@ -723,3 +723,107 @@ textarea {
 }
 .saved-title { font-weight: 700; color: var(--color-primary); }
 .saved-coords { font-size: 0.85rem; color: rgba(0,0,0,0.6); }
+
+
+
+.recoverPasswordPage {
+    display: flex;
+    justify-content: center;   
+    align-items: center;       
+    height: 80vh;             
+}
+
+.recoverPasswordContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    width: 60vw;
+    background-color: #E0E6D5;
+
+    margin: 0 auto;
+    /* centra horizontal */
+    margin-top: calc((100vh - 60vh) / 2);
+    /* centra vertical */
+
+    border-radius: 12px;
+        border: 1px solid #585233;
+
+
+
+}
+
+.recoverPasswordContainer h2 {
+    color: #585233;
+    font-weight: bold;
+    font-size: 28px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+
+.recoverPasswordContainer h3 {
+    text-align: center;
+    color: #585233;
+    font-size: 16px;
+    margin: 10px;
+    text-align: center;
+}
+
+.recoverPasswordContainer p {
+    color: #585233;
+    font-size: 16px;
+    margin: 20px;
+}
+
+.recoverPasswordContainer span {
+    font-weight: bold;
+}
+
+.recoverPasswordContainer input {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #585233;
+    border-radius: 5px;
+    width: 100%;
+    font-size: 16px;
+    background-color: #d2d7c4;
+}
+.recuperarContraseña{
+    text-align: center;
+    color: #585233;
+    font-weight: bold;
+    background-color: #CCD5B9;
+    width: 108%;
+    border: none;
+    border-radius: 5px;
+    margin-top: 10px;
+    padding: 10px 0px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 1s ease-in-out;
+}
+
+@media (max-width: 600px) {
+    .recoverPasswordContainer {
+        width: 90vw;
+        height: auto;
+        margin: 10px;
+       padding: 20px;
+    }
+}
+
+.link_login{
+    color: #585233;
+    font-weight: bold;
+    text-decoration: none;
+    margin-top: 15px;
+    display: inline-block;
+}

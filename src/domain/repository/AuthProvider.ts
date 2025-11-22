@@ -12,4 +12,5 @@ export interface AuthProvider {
     actionCodeSettings?: ActionCodeSettings
   ): Promise<void>;
   canUpdateEmail(userId: string): Promise<boolean>;
+  sendRecoveryEmail(email: string): Promise<void>;
 }

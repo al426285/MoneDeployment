@@ -7,7 +7,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
- // await userService.signUp("al123456@uji.es", "Maria", "MiContrasena64");
+ //await userService.signUp("al123456@uji.es", "Maria", "MiContrasena64");
 });
 
 describe("HU04 - Eliminación de cuenta", () => {

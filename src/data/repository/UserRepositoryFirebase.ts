@@ -7,6 +7,7 @@ export class UserRepositoryFirebase implements UserRepository {
   
   async deleteUser(userId: string): Promise<void> {
     await this.dataSource.deleteUser(userId);
+  }
 
   async getUserById(userId: string): Promise<User | null> {
     return await this.dataSource.getUserById(userId);

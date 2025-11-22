@@ -95,7 +95,7 @@ export const useUserViewModel = (onNavigate: (path: string) => void) => {
         setMessage("Email or password incorrect.");
       } else if (msg === "UserDisabled") {
         setMessage("User disabled.");
-      }else if (msg === "TooManyRequests") {
+      } else if (msg === "TooManyRequests") {
         setMessage("Too many login attempts. Please try again later.");
       } else {
         setMessage(msg);
@@ -121,8 +121,31 @@ export const useUserViewModel = (onNavigate: (path: string) => void) => {
     } finally {
       setLoading(false);
     }
+  };
 
- 
+  const handleDeleteAccount = async () => {
+    const userService = UserService.getInstance();
+    if (!userService || typeof (userService as any).deleteUser !== "function") {
+      setMessage("Servicio de usuario no disponible");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await (userService as any).deleteUser(email);
+      setMessage("Cuenta eliminada con éxito.");
+      onNavigate("/signup");
+    } catch (error) {
+      const err = error as Error;
+      const msg = err?.message ?? "Error al eliminar la cuenta";
+      setMessage("Error: " + msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    email,
     nickname,
     password,
     message,
@@ -136,37 +159,9 @@ export const useUserViewModel = (onNavigate: (path: string) => void) => {
     handleSignUp,
     logIn,
     logInWithGoogle,
-    setLoading,
-  };
-  };
-const handleDeleteAccount = async () => {
-    const userService = UserService.getInstance();
-    if (!userService || typeof userService.deleteUser !== "function") {
-      setMessage("Servicio de usuario no disponible");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await userService.deleteUser(email);
-      setMessage("Cuenta eliminada con éxito.");
-      onNavigate("/signup");
-    } catch (error) {
-      const err = error as Error;
-      const msg = err?.message ?? "Error al eliminar la cuenta";
-      setMessage("Error: " + msg);
-  return {
-    email,
-    
-    loading,
-    errors,
-    
-    setMessage,
     handleDeleteAccount,
     setLoading,
   };
-};
-
 };
 
 const normalizeProfile = (

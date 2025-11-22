@@ -19,11 +19,12 @@ import { User } from "../../domain/model/User";
 import { UserSession } from "../../domain/session/UserSession";
 import { FirebaseError } from "firebase/app";
 import { handleAuthError } from "../../core/utils/exceptions";
+import { doc, deleteDoc } from "firebase/firestore";
 
 export class FirebaseAuthAdapter implements AuthProvider {
   private auth = auth;
 
- async deleteUser(userId: string): Promise<void> {
+  async deleteUser(userId: string): Promise<void> {
     const ref = doc(db, "users", userId);
     try {
       await deleteDoc(ref);
@@ -32,9 +33,6 @@ export class FirebaseAuthAdapter implements AuthProvider {
     }
   }
 
-
-  
-}
   async logIn(email: string, password: string): Promise<UserSession> {
     try {
       const userCredential = await signInWithEmailAndPassword(this.auth, email.trim(), password.trim());
@@ -43,7 +41,7 @@ export class FirebaseAuthAdapter implements AuthProvider {
       if (typeof session.saveToCache === "function") session.saveToCache();
       return session;
     } catch (err) {
-      try { console.debug("[FirebaseAuthAdapter.logIn] code:", (err as any)?.code, "message:", (err as any)?.message); } catch {}
+      try { console.debug("[FirebaseAuthAdapter.logIn] code:", (err as any)?.code, "message:", (err as any)?.message); } catch { }
       handleAuthError(err as FirebaseError);
     }
   }
@@ -109,4 +107,73 @@ export class FirebaseAuthAdapter implements AuthProvider {
       return true;
     }
   }
+
+
+
+  async sendRecoveryEmail(email: string): Promise<void> {
+    try {
+      await sendPasswordResetEmail(this.auth, email);
+    } catch (error) {
+      handleAuthError(error as FirebaseError);
+    }
+  }
 }
+
+/*
+ async changeUserPassword(
+    currentPassword: string | null,
+    newPassword: string,
+    oobCode?: string // código del enlace enviado por email
+  ): Promise<void> {
+    const auth = getAuth(firebaseApp);
+
+    // Usuario vino desde el email
+    if (oobCode) {
+      try {
+        await confirmPasswordReset(auth, oobCode, newPassword);
+        return;
+      } catch (Error) {
+        throw handleAuthError(Error as FirebaseError);
+      }
+    }
+
+    // Usuario autenticado que proporciona la contraseña actual
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const email = user.email;
+    if (!email) {
+      throw new Error("Email del usuario no disponible para reautenticación");
+    }
+
+    if (!currentPassword) {
+      throw new Error("Se requiere la contraseña actual para cambiarla");
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+    } catch (Error) {
+      throw handleAuthError(Error as FirebaseError);
+    }
+  }
+
+  async sendPasswordResetLink(
+    email: string,
+    actionCodeSettings?: ActionCodeSettings
+  ): Promise<void> {
+    const auth = getAuth(firebaseApp);
+    try {
+      if (actionCodeSettings) {
+        await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      } else {
+        await sendPasswordResetEmail(auth, email);
+      }
+    } catch (Error) {
+      throw handleAuthError(Error as FirebaseError);
+    }
+  }
+*/
