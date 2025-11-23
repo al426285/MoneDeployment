@@ -13,4 +13,5 @@ export interface AuthProvider {
   ): Promise<void>;
   canUpdateEmail(userId: string): Promise<boolean>;
   sendRecoveryEmail(email: string): Promise<void>;
+  logOut(): Promise<void>;
 }

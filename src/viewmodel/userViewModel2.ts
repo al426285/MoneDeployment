@@ -9,6 +9,20 @@ export const useUserViewModel2 = () => {
 
   const service = UserService.getInstance();
 
+  const logOut = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      await service.logOut();
+    } catch (error) {
+      const msg = (error as Error).message;
+      console.error(msg);
+      setMessage(msg);
+    }
+    finally {
+      setLoading(false);
+    }
+  };
   const recoverPassword = async (emailParam?: string) => {
     const e = emailParam ?? email;
 
@@ -50,5 +64,6 @@ export const useUserViewModel2 = () => {
     setErrors,
     setLoading,
     recoverPassword,
+    logOut,
   };
 };

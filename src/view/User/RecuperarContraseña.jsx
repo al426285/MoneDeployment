@@ -11,7 +11,7 @@ export const RecuperarContraseña = () => {
     setMessage,
     setErrors,
     setLoading,
-    recoverPassword,
+    recoverPassword, logOut
   } = useUserViewModel2();
 
   const handleSubmit = (e) => {

@@ -1,4 +1,8 @@
 import type { AuthProvider } from "../../domain/repository/AuthProvider";
+
+import { FirebaseError } from "firebase/app";
+import { handleAuthError } from "../../core/utils/exceptions";
+
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -9,16 +13,15 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   updatePassword,
-  verifyBeforeUpdateEmail,
   confirmPasswordReset,
-  sendPasswordResetEmail,
+  sendPasswordResetEmail, verifyBeforeUpdateEmail,
+
 } from "firebase/auth";
-import type { ActionCodeSettings } from "firebase/auth";
+
 import { firebaseApp, auth, googleProvider } from "../../core/config/firebaseConfig";
-import { User } from "../../domain/model/User";
 import { UserSession } from "../../domain/session/UserSession";
-import { FirebaseError } from "firebase/app";
-import { handleAuthError } from "../../core/utils/exceptions";
+import type { ActionCodeSettings } from "firebase/auth";
+import { User } from "../../domain/model/User";
 import { doc, deleteDoc } from "firebase/firestore";
 
 export class FirebaseAuthAdapter implements AuthProvider {
@@ -43,6 +46,19 @@ export class FirebaseAuthAdapter implements AuthProvider {
     } catch (err) {
       try { console.debug("[FirebaseAuthAdapter.logIn] code:", (err as any)?.code, "message:", (err as any)?.message); } catch { }
       handleAuthError(err as FirebaseError);
+    }
+  }
+  async logOut(): Promise<void> {
+    const session = UserSession.loadFromCache();
+    if (!session || !session.userId) {
+      throw new Error("RequiresRecentLogin"); 
+    }
+    try {
+      await signOut(this.auth);
+      UserSession.clear();
+     // console.log("logged out")
+    } catch (Error) {
+      throw handleAuthError(Error as FirebaseError);
     }
   }
 
@@ -156,10 +172,12 @@ export class FirebaseAuthAdapter implements AuthProvider {
       const credential = EmailAuthProvider.credential(email, currentPassword);
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
+>>>>>>> it-01
     } catch (Error) {
       throw handleAuthError(Error as FirebaseError);
     }
   }
+
 
   async sendPasswordResetLink(
     email: string,
@@ -177,3 +195,4 @@ export class FirebaseAuthAdapter implements AuthProvider {
     }
   }
 */
+
