@@ -182,24 +182,27 @@ export class UserService {
     try {
       const session = UserSession.loadFromCache();
       const userId = session?.userId ?? "";
+      if (!userId) {//Puede que se tenga que quitar si el test coge este antes que el de UserNotFound
+        throw new Error("UserNotAuthenticated");
+      }
       const currentUser = await this.userRepository.getUserById(userId);
       if (!currentUser) {
-        throw new Error("UserNotAuthenticated");
-      } else {
-
-        // comprobar que el email corresponde al usuario autenticado
-        const userFromEmail = await this.userRepository.getUserByEmail(email);
-        if (currentUser.equalsUser(userFromEmail)) {
-          //En el futuro borrar los datos del usuario
-          this.logOut();
-          await this.userRepository.deleteUser(userId);
-          return true;
-        }
-        return false;
-
+        throw new Error("UserNotFound");
       }
-    } catch (error: any) { }
-    return false;
+
+      // comprobar que el email corresponde al usuario autenticado
+      const userFromEmail = await this.userRepository.getUserByEmail(email);
+      if (!currentUser.equalsUser(userFromEmail)) {
+        throw new Error("DeleteUserEmailMismatch");
+      }
+      //En el futuro borrar los datos del usuario
+      await this.logOut();
+      await this.userRepository.deleteUser(userId);
+      return true;
+    
+    } catch {
+      return false;
+     }
   }
 
 

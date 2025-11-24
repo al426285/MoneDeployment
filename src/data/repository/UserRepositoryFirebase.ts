@@ -1,5 +1,5 @@
 import type { UserRepository } from "../../domain/repository/UserRepository";
-import { FirebaseDataSource } from "../datasource/FirebaseDataSource";
+import { FirebaseDataSource } from "../datasource/firebaseDataSource";
 import { User } from "../../domain/model/User";
 
 export class UserRepositoryFirebase implements UserRepository {
