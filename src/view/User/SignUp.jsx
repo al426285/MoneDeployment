@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useUserViewModel } from "../../viewmodel/UserViewModel";
 import { useNavigate } from "react-router-dom";
-
 export const SignUp = () => {
   const navigate = useNavigate();
   const {

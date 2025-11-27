@@ -11,16 +11,24 @@ import {
   getDocs,
   serverTimestamp,
 } from "firebase/firestore";
+import { auth } from "../../core/config/firebaseConfig";
+
 import { firebaseApp } from "../../core/config/firebaseConfig";
 import { User } from "../../domain/model/User";
 import {
- 
-} from "firebase/auth";
 
-const db = getFirestore(firebaseApp);
+} from "firebase/auth";
+import { deleteUser as fbDeleteUser } from "firebase/auth";
+import { UserSession } from "../../domain/session/UserSession";
+import { db } from "../../core/config/firebaseConfig";
+import { requestFormReset } from "react-dom";
+import type { UserRepository } from "../../domain/repository/UserRepository";
+
+
 
 export class FirebaseDataSource {
   private userCollection = collection(db, "users");
+  private auth = auth;
 
   async getUserById(userId: string): Promise<User | null> {
     const ref = doc(db, "users", userId);
@@ -34,7 +42,7 @@ export class FirebaseDataSource {
 
   async getUserByEmail(email: string): Promise<any | null> {
     try {
-      const q = query(this.userCollection, where("email", "==", email));
+      const q = query(this.userCollection, where("email", "==", email.trim()));
       const snapshot = await getDocs(q);
       if (snapshot.empty) return null;
       const doc = snapshot.docs[0];
@@ -68,9 +76,43 @@ export class FirebaseDataSource {
     await updateDoc(ref, payload);
   }
 
-  async deleteUser(userId: string): Promise<void> {
-    const ref = doc(db, "users", userId);
-    await deleteDoc(ref);
+  async deleteUser(email: string): Promise<void> {
+    const currentUser = this.auth.currentUser;
+    const userbbdd = await this.getUserByEmail(email);
+
+    console.log("Deleting user with email:", email, "userbbdd", userbbdd, "and id:", userbbdd?.id);
+
+
+    if (!userbbdd) {
+      throw new Error("UserNotFound");
+    }
+
+    if (!currentUser || currentUser.uid !== userbbdd.id) {
+      console.log("Current user ID:", currentUser?.uid, "does not match userbbdd ID:", userbbdd.id);
+      throw new Error("RequiresRecentLogin");
+    }
+
+    // Eliminamos perfil de Firestore
+    try {
+      const ref = doc(db, "users", userbbdd.id);
+      await deleteDoc(ref);
+    } catch (error) {
+      console.error("Firestore cleanup failed", error);
+    }
+
+    //Eliminamos de Firebase Authentication
+    try {
+      await 
+      await fbDeleteUser(currentUser);
+    } catch (error) {
+      console.error("Firebase cleanup failed", error);
+
+    }
+
+
+
+    // 3. Limpiar sesión local
+    UserSession.clear();
   }
 
 }

@@ -20,20 +20,42 @@ import {
 
 import { firebaseApp, auth, googleProvider } from "../../core/config/firebaseConfig";
 import { UserSession } from "../../domain/session/UserSession";
-import type { ActionCodeSettings } from "firebase/auth";
+import type { ActionCodeSettings, deleteUser as fbDeleteUser } from "firebase/auth";
 import { User } from "../../domain/model/User";
 import { doc, deleteDoc } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
+
+const db = getFirestore(firebaseApp);
+
 
 export class FirebaseAuthAdapter implements AuthProvider {
   private auth = auth;
 
   async deleteUser(userId: string): Promise<void> {
-    const ref = doc(db, "users", userId);
+    const currentUser = this.auth.currentUser;
+
+    if (!currentUser || currentUser.uid !== userId) {
+      throw new Error("RequiresRecentLogin");
+    }
+
+    // 1. Eliminar de Firebase Authentication
     try {
+      await fbDeleteUser(currentUser);
+    } catch (error) {
+      throw handleAuthError(error as FirebaseError);
+    }
+
+    // 2. Eliminar perfil de Firestore
+    try {
+      const ref = doc(db, "users", userId);
       await deleteDoc(ref);
     } catch (error) {
-      throw new Error(error as Error);
+      console.error("Firestore cleanup failed", error);
     }
+
+    // 3. Limpiar sesión local
+    UserSession.clear();
+
   }
 
   async logIn(email: string, password: string): Promise<UserSession> {
@@ -44,19 +66,22 @@ export class FirebaseAuthAdapter implements AuthProvider {
       if (typeof session.saveToCache === "function") session.saveToCache();
       return session;
     } catch (err) {
-      try { console.debug("[FirebaseAuthAdapter.logIn] code:", (err as any)?.code, "message:", (err as any)?.message); } catch { }
+      try { //console.debug("[FirebaseAuthAdapter.logIn] code:", (err as any)?.code, "message:", (err as any)?.message);
+      } catch {
+        // ignore
+      }
       handleAuthError(err as FirebaseError);
     }
   }
   async logOut(): Promise<void> {
     const session = UserSession.loadFromCache();
     if (!session || !session.userId) {
-      throw new Error("RequiresRecentLogin"); 
+      throw new Error("RequiresRecentLogin");
     }
     try {
       await signOut(this.auth);
       UserSession.clear();
-     // console.log("logged out")
+      // console.log("logged out")
     } catch (Error) {
       throw handleAuthError(Error as FirebaseError);
     }

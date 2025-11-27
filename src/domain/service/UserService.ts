@@ -80,25 +80,23 @@ export class UserService {
             localStorage.setItem("user_profile", JSON.stringify(plain));
           }
         }
-      } catch {/* ignore profile cache errors */ }
+      } catch {/* ignorar */ }
 
       return session;
 
     } catch (err) {
-      // deja que tu mapeador haga todo
       handleAuthError(err as any);
 
-      // fallback si no lanzó nada (no ocurre, pero por seguridad)
       throw new Error("AuthError");
     }
   }
   async logOut(): Promise<void> {
-    
+
     try {
       await this.authProvider.logOut();
     } catch (Error) {
-       throw handleAuthError(Error as FirebaseError);
-    } 
+      throw handleAuthError(Error as FirebaseError);
+    }
   }
 
 
@@ -110,18 +108,15 @@ export class UserService {
         session.saveToCache();
       }
 
-      // Asegurar que exista documento de usuario en repo (first-time google sign-up)
       try {
         let exists = false;
-        // 1) comprobar por userId si el repo soporta getUserById
         if (this.userRepository && typeof (this.userRepository as any).getUserById === "function") {
           try {
             const u = await (this.userRepository as any).getUserById(session.userId);
             if (u) exists = true;
-          } catch { /* ignore repo read error */ }
+          } catch { /* ignorar */ }
         }
 
-        // 2) intentar recuperar email/nickname desde caché (adapter podría haberlos guardado)
         let email = "";
         let nickname = "";
         try {
@@ -135,24 +130,21 @@ export class UserService {
             email = profile.email ?? "";
             nickname = profile.nickname ?? profile.displayName ?? "";
           }
-        } catch { /* ignore cache read errors */ }
+        } catch { /* ignorar */ }
 
-        // 3) si no existe y tenemos email, comprobar por email en repo si lo soporta
         if (!exists && email && this.userRepository && typeof (this.userRepository as any).getUserByEmail === "function") {
           try {
             const ue = await (this.userRepository as any).getUserByEmail(email);
             if (ue) exists = true;
-          } catch { /* ignore */ }
+          } catch { /* ignorar */ }
         }
 
-        // 4) crear documento si no existe
         if (!exists) {
           try {
             const newUser = new User(email ?? "", nickname ?? "");
             if (this.userRepository && typeof (this.userRepository as any).saveUser === "function") {
               await (this.userRepository as any).saveUser(session.userId, newUser);
             }
-            // actualizar caché de perfil
             try {
               const plain = { userId: session.userId, email: email ?? "", nickname: nickname ?? "", cachedAt: Date.now() };
               if ((UserSession as any).saveProfileToCache && typeof (UserSession as any).saveProfileToCache === "function") {
@@ -160,10 +152,10 @@ export class UserService {
               } else {
                 localStorage.setItem("user_profile", JSON.stringify(plain));
               }
-            } catch { /* ignore cache write errors */ }
-          } catch { /* ignore save errors */ }
+            } catch { /* ignorar errores de escritura en caché */ }
+          } catch { /* ignorar errores de guardado */ }
         }
-      } catch { /* ignore repo-check errors */ }
+      } catch { /* ignorar errores de verificación de repositorio */ }
 
       return session;
     } catch (error: any) {
@@ -180,29 +172,12 @@ export class UserService {
   //Flujo de acciones: miarar si la sesion esrta abierta (primero mirar chache), obtener email, cerrar sesión, borrar usuario db, borrar datos, ir a signup
   async deleteUser(email: string): Promise<boolean> {
     try {
-      const session = UserSession.loadFromCache();
-      const userId = session?.userId ?? "";
-      if (!userId) {//Puede que se tenga que quitar si el test coge este antes que el de UserNotFound
-        throw new Error("UserNotAuthenticated");
-      }
-      const currentUser = await this.userRepository.getUserById(userId);
-      if (!currentUser) {
-        throw new Error("UserNotFound");
-      }
-
-      // comprobar que el email corresponde al usuario autenticado
-      const userFromEmail = await this.userRepository.getUserByEmail(email);
-      if (!currentUser.equalsUser(userFromEmail)) {
-        throw new Error("DeleteUserEmailMismatch");
-      }
-      //En el futuro borrar los datos del usuario
-      await this.logOut();
-      await this.userRepository.deleteUser(userId);
+      await this.userRepository.deleteUser(email);
       return true;
-    
-    } catch {
-      return false;
-     }
+
+    } catch (error) {
+      throw new Error(error);
+    }
   }
 
 
@@ -241,7 +216,7 @@ export class UserService {
     return null;
   }
 
-  
+
 
   async updateCurrentUserProfile(
     newEmail?: string,
@@ -376,13 +351,18 @@ export class UserService {
       throw new Error("InvalidDataException");
     }
     const existing = await this.userRepository.getUserByEmail(email);
-    console.log(existing);
     if (!existing) throw new Error("UserNotFound");
     try {
       await this.authProvider.sendRecoveryEmail(email);
     } catch (error) {
-      console.error("Error sending recovery email:", error);
       handleAuthError(error as FirebaseError);
     }
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    if (!email || !isValidEmail(email)) {
+      throw new Error("InvalidDataException");
+    }
+    return this.userRepository.getUserByEmail(email);
   }
 }
