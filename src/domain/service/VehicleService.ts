@@ -1,5 +1,5 @@
 
-import type { VehicleRepository } from "../repository/VehicleRepository";
+import type { VehicleRepositoryInterface as VehicleRepository } from "../repository/VehicleRepositoryInterface";
 import { VehicleFactory } from "../model/VehicleFactory";
 import type { FuelType } from "../model/VehicleInterface";
 import { isValidVehicleName } from "../../core/utils/validators";
