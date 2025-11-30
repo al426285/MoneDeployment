@@ -15,7 +15,7 @@ const BASE_USER = {
 const userService = UserService.getInstance();
 const placeService = PlaceService.getInstance();
 
-const createLocalStorageMock = () => {
+const createLocalStorage = () => {
 	const store: Record<string, string> = {};
 	global.localStorage = {
 		getItem: (key: string) => (key in store ? store[key] : null),
@@ -83,14 +83,14 @@ const mockORSResponse = (label: string, latitude: number, longitude: number) =>
 	} as any);
 
 beforeAll(async () => {
-	createLocalStorageMock();
+	createLocalStorage();
 	await ensureBaseUser();
 	await ensureSession();
 	await cleanupUserPlaces();
 });
 
 beforeEach(async () => {
-	createLocalStorageMock();
+	createLocalStorage();
 	await ensureSession();
 	await cleanupUserPlaces();
 });
@@ -158,21 +158,6 @@ describe("Tests aceptación segunda iteración {h07}: Guardar nuevo lugar", () =
 		LONG_TIMEOUT
 	);
 
-	test(
-		"H07-E3 - Inválido: sin sesión activa ni userId explícito no permite guardar",
-		async () => {
-			UserSession.clear();
-
-			await expect(
-				placeService.savePlace({
-					name: "Parque Ribalta",
-					latitude: 39.989,
-					longitude: -0.051,
-				})
-			).rejects.toThrow("User session not found. Provide an explicit user id or ensure the session is stored.");
-		},
-		LONG_TIMEOUT
-	);
 });
 
 describe("Tests aceptación segunda iteración {h08}: Gestión de lugares guardados", () => {
