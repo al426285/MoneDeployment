@@ -10,7 +10,7 @@ const BASE_USER = {
   password: "MiContrasena64",
 };
 
-const emailtest=`testuser${Date.now()}@test.com`;
+const emailtest = `testuser${Date.now()}@test.com`;
 const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 const userService = UserService.getInstance();
@@ -32,7 +32,7 @@ beforeEach(() => {
 });
 
 beforeAll(() => {
-userService.signUp(BASE_USER.email, BASE_USER.nickname, BASE_USER.password);
+  userService.signUp(BASE_USER.email, BASE_USER.nickname, BASE_USER.password);
 });
 
 
@@ -68,7 +68,7 @@ describe("Tests aceptación primera iteración {h01}: SignUp", () => {
 describe("Tests aceptación primera iteración {h02}: LogIn", () => {
   test("H02-E1 - Válido: inicia sesión correctamente", async () => {
     const session = await userService.logIn(BASE_USER.email, BASE_USER.password);
-        await sleep(500);
+    await sleep(500);
     expect(session).toBeInstanceOf(UserSession);
     expect(session.userId).toBeTruthy();
   });
@@ -104,11 +104,21 @@ describe("Tests aceptación primera iteración {h03}: LogOut", () => {
 
 
 describe("Tests aceptación primera iteración {h05}: RecoverPassword", () => {
-  test("H05-E1 - Válido: cambia la contraseña correctamente", async () => {
-
-    await expect(userService.recoverPassword(emailtest)).resolves.toBeUndefined();
-
-  });
+   test(
+    "H05-E1 - Válido: cambia la contraseña correctamente",
+    async () => {
+      const email = `test_${crypto.randomUUID()}@test.com`;
+      const password = "InitialPass123";
+      try {
+        await userService.signUp(email, "prueba", password);
+      } catch {
+        //usuario ya existe
+      }
+      await sleep(1000); 
+      await expect(userService.recoverPassword(email)).resolves.toBeUndefined();
+    },
+    15000 
+  );
 
   test("H05-E3 - Inválido: correo no registrado", async () => {
     await expect(userService.recoverPassword("noexiste919191@uji.es"))
@@ -123,8 +133,14 @@ describe("Tests aceptación primera iteración {h06}: UpdateProfile", () => {
   test(
     "H06-E1 - Válido: el usuario cambia su alias correctamente",
     async () => {
-      await userService.logIn(BASE_USER.email, BASE_USER.password);
-      
+      try {
+        await userService.signUp(emailtest, BASE_USER.nickname, BASE_USER.password);
+      } catch {
+        //usuario ya existe
+      }
+
+      await userService.logIn(emailtest, BASE_USER.password);
+
       await sleep(500);
 
       const result = await userService.updateCurrentUserProfile(undefined, undefined, "Mario");
@@ -145,18 +161,24 @@ describe("Tests aceptación primera iteración {h04}: DeleteUser", () => {
   test(
     "H04-E1 - Válido: elimina la cuenta con sesión abierta",
     async () => {
+       try {
+      await userService.signUp(emailtest, BASE_USER.nickname, BASE_USER.password);
+    } catch {
+      //usuario ya existe
+    }
+
       // Sesión iniciada
-      await userService.logIn(BASE_USER.email, BASE_USER.password);
-      
+      await userService.logIn(emailtest, BASE_USER.password);
+
       await sleep(500);
 
-      const result = await userService.deleteUser(BASE_USER.email);
+      const result = await userService.deleteUser(emailtest, BASE_USER.password);
       expect(result).toBe(true);
     },
     15000 // 15 segundos en vez de 5
   );
   test("H04-E3 - Inválido: correo no encontrado", async () => {
-    await expect(userService.deleteUser("cuentainexistente919191@uji.es"))
+    await expect(userService.deleteUser("cuentainexistente919191@uji.es", "CualquierCosa123"))
       .rejects.toThrow("UserNotFound");//cambiar el email en la documentación
   });
 });

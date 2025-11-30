@@ -77,20 +77,20 @@ export class FirebaseDataSource {
   }
 
   async deleteUser(email: string): Promise<void> {
-    const currentUser = this.auth.currentUser;
+    const currentUser = this.auth.currentUser; //no se puede gastar auth desde aquí
     const userbbdd = await this.getUserByEmail(email);
 
-    console.log("Deleting user with email:", email, "userbbdd", userbbdd, "and id:", userbbdd?.id);
+   // console.log("Deleting user with email:", email, "userbbdd", userbbdd, "and id:", userbbdd?.id);
 
 
     if (!userbbdd) {
       throw new Error("UserNotFound");
     }
 
-    if (!currentUser || currentUser.uid !== userbbdd.id) {
+    /*if (!currentUser || currentUser.uid !== userbbdd.id) {
       console.log("Current user ID:", currentUser?.uid, "does not match userbbdd ID:", userbbdd.id);
       throw new Error("RequiresRecentLogin");
-    }
+    }*/
 
     // Eliminamos perfil de Firestore
     try {
@@ -100,18 +100,7 @@ export class FirebaseDataSource {
       console.error("Firestore cleanup failed", error);
     }
 
-    //Eliminamos de Firebase Authentication
-    try {
-      await 
-      await fbDeleteUser(currentUser);
-    } catch (error) {
-      console.error("Firebase cleanup failed", error);
-
-    }
-
-
-
-    // 3. Limpiar sesión local
+    //  Limpiar sesión local
     UserSession.clear();
   }
 

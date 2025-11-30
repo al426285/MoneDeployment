@@ -21,6 +21,23 @@ export class UserService {
   private authProvider!: AuthProvider;
   private userRepository!: UserRepository;
 
+  private buildEmailActionCodeSettings(): ActionCodeSettings | undefined {
+    try {
+      const origin = typeof window !== "undefined" && window?.location?.origin
+        ? window.location.origin
+        : typeof location !== "undefined"
+          ? location.origin
+          : "";
+      if (!origin) return undefined;
+      return {
+        url: `${origin}/email-update-confirmation`,
+        handleCodeInApp: false,
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
 
   public static getInstance(
     authProvider?: AuthProvider,
@@ -170,13 +187,38 @@ export class UserService {
 
 
   //Flujo de acciones: miarar si la sesion esrta abierta (primero mirar chache), obtener email, cerrar sesión, borrar usuario db, borrar datos, ir a signup
-  async deleteUser(email: string): Promise<boolean> {
+  async deleteUser(email: string, password: string): Promise<boolean> {
     try {
-      await this.userRepository.deleteUser(email);
-      return true;
+      //Contemplar hacer una comprobación de que email y currentUserId son el mismo usuario
+      //Contemplar reautenticar aquí: par que esté cerca del borrado en FireStore, pero no en él porque ahí no se puede usar auth
+      const session = UserSession.loadFromCache();
+      
+      if (!session) throw new Error("UserNotFound");
+
+    //  const userbbdd = await this.userRepository.getUserByEmail(email);
+
+      const currentUserId = session.userId;
+       
+      //    const useridbbdd = userbbdd?.id;
+      // if (!currentUserId || !session) {
+      //   throw new Error("UserNotAuthenticated");
+      // }
+      // if (!useridbbdd || useridbbdd !== session?.userId) {
+      //   throw new Error("UserMismatch");
+      // }
+      try {
+        //borramos de firestore
+        await this.userRepository.deleteUser(email);
+        //borramos de auth firebase
+        await this.authProvider.deleteUser(currentUserId, password);
+        return true;
+      }
+      catch (error) {
+        throw new Error(error);
+      }
 
     } catch (error) {
-      throw new Error(error);
+      throw new Error(error as any);
     }
   }
 

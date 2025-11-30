@@ -20,7 +20,7 @@ import {
 
 import { firebaseApp, auth, googleProvider } from "../../core/config/firebaseConfig";
 import { UserSession } from "../../domain/session/UserSession";
-import type { ActionCodeSettings, deleteUser as fbDeleteUser } from "firebase/auth";
+import { type ActionCodeSettings, deleteUser } from "firebase/auth";
 import { User } from "../../domain/model/User";
 import { doc, deleteDoc } from "firebase/firestore";
 import { getFirestore } from "firebase/firestore";
@@ -31,29 +31,24 @@ const db = getFirestore(firebaseApp);
 export class FirebaseAuthAdapter implements AuthProvider {
   private auth = auth;
 
-  async deleteUser(userId: string): Promise<void> {
+  async deleteUser(userId: string, currentPassword: string): Promise<void> {
     const currentUser = this.auth.currentUser;
+    if (!currentUser || currentUser.uid !== userId) throw new Error("RequiresRecentLogin");
 
-    if (!currentUser || currentUser.uid !== userId) {
-      throw new Error("RequiresRecentLogin");
-    }
+    //lo reautenticamos
+    const credential = EmailAuthProvider.credential(currentUser.email ?? "", currentPassword ?? "");
+    await reauthenticateWithCredential(currentUser, credential);
 
-    // 1. Eliminar de Firebase Authentication
+
+    // Eliminamos de Firebase Authentication
     try {
-      await fbDeleteUser(currentUser);
+      await deleteUser(currentUser);
     } catch (error) {
+      console.log("Error deleting user from Firebase Auth:", error);
       throw handleAuthError(error as FirebaseError);
     }
 
-    // 2. Eliminar perfil de Firestore
-    try {
-      const ref = doc(db, "users", userId);
-      await deleteDoc(ref);
-    } catch (error) {
-      console.error("Firestore cleanup failed", error);
-    }
-
-    // 3. Limpiar sesión local
+    // Limpiar sesión local
     UserSession.clear();
 
   }

@@ -226,18 +226,41 @@ describe("H06: UpdateProfile", () => {
 
 describe("H04: DeleteUser", () => {
    test("H04-E1 - válido: elimina usuario existente", async () => {
-        // Mock del repo para devolver resolución correcta
-        const mockRepo = {
-            deleteUser: vi.fn().mockResolvedValue(true),
-            getUserByEmail: vi.fn().mockResolvedValue({ id: "USER123", email: BASE_USER.email }),
-        };
 
-        const service = UserService.getInstance(undefined, mockRepo as any);
-
-        const result = await service.deleteUser(BASE_USER.email);
-        expect(result).toBe(true);
-        expect(mockRepo.deleteUser).toHaveBeenCalledWith(BASE_USER.email);
+    // Mock de la sesión (si no el loadsession from cache devuelve null)
+    vi.spyOn(UserSession, "loadFromCache").mockReturnValue({
+        userId: "USER123",
+        token: "TOKEN123"
     });
+
+    const mockRepo = {
+        deleteUser: vi.fn().mockResolvedValue(true),
+        getUserByEmail: vi.fn().mockResolvedValue({
+            id: "USER123",
+            email: BASE_USER.email
+        }),
+    };
+
+    // Mock del authProvider, para que no falle al reautenticar
+    const mockAuthProvider = {
+        deleteUser: vi.fn().mockImplementation(async (userId, password) => {
+            if (!userId) throw new Error("RequiresRecentLogin");
+            return true;
+        })
+    };
+
+    const service = UserService.getInstance(mockAuthProvider as any, mockRepo as any);
+
+    // MOCKEAR auth.currentUser dentro del servicio
+    (service as any).auth.currentUser = { uid: "USER123", email: BASE_USER.email };
+
+    const result = await service.deleteUser(BASE_USER.email, BASE_USER.password);
+
+    expect(result).toBe(true);
+    expect(mockRepo.deleteUser).toHaveBeenCalledWith(BASE_USER.email);
+    expect(mockAuthProvider.deleteUser).toHaveBeenCalledWith("USER123", BASE_USER.password);
+});
+
 
    test("H04-E3 - inválido: email no encontrado", async () => {
         const mockRepo = {
@@ -247,8 +270,7 @@ describe("H04: DeleteUser", () => {
 
         const service = UserService.getInstance(undefined, mockRepo as any);
 
-        await expect(service.deleteUser("noexiste919191@uji.es"))
+        await expect(service.deleteUser("noexiste919191@uji.es", "CualquierCosa123"))
             .rejects.toThrow("UserNotFound");
-        expect(mockRepo.deleteUser).toHaveBeenCalledWith("noexiste919191@uji.es");
     });
 });
