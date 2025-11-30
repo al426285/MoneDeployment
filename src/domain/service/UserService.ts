@@ -407,4 +407,13 @@ export class UserService {
     }
     return this.userRepository.getUserByEmail(email);
   }
+
+  getCurrentUserId(): string | null {
+    try {
+      const session = UserSession.loadFromCache();
+      return session?.userId ?? null;
+    } catch {
+      return null;
+    }
+  }
 }

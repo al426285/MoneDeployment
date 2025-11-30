@@ -470,7 +470,7 @@ textarea {
 .map-panel {
   flex: 1 1 auto;
   min-height: 550px;                 
-  height: calc(50vh - 90px);        
+  height: calc(100vh - 90px);        
   border-radius: 10px;
   overflow: hidden;
 }
