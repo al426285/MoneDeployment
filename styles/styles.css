@@ -20,6 +20,19 @@
   --font-family-base: 'Work Sans', sans-serif;
 }
 
+/* App layout helpers: make page container full-height and allow main to grow */
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1 1 auto;
+}
+
+
+
 
 /* ============================= */
 /*       UTILIDADES GENERALES    */
@@ -1046,21 +1059,95 @@ textarea {
 }
 
 .cerrarSesion {
-    background-color: #ff4d4d;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    margin: 4px 2px;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 1s ease-in-out;
+  background-color: var(--color-primary);
+  color: var(--color-secondary);
+  border: none;
+  padding: 10px 16px;
+  text-align: left;
+  text-decoration: none;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 16px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background-color 0.18s ease-in-out;
 
 }
 
 .cerrarSesion:hover {
     background-color: #c91a1a;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+.modal-card {
+  width: min(560px, 95%);
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.modal-card {
+  background: var(--color-secondary);
+  color: var(--color-primary);
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.modal-card h1 {
+  margin: 0 0 0.8rem 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.modal-card label {
+  display: block;
+  margin-top: 0.5rem;
+  font-weight: 600;
+  font-size: 1.2 rem;
+}
+.modal-card input,
+.modal-card textarea,
+.modal-card select {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Mobile: apilar acciones y ajustar tamaño del modal */
+@media (max-width: 520px) {
+  .modal-card {
+    width: calc(100% - 2rem);
+    padding: 0.75rem;
+    border-radius: 10px;
+    max-height: 88vh;
+  }
+  .modal-actions {
+    flex-direction: column-reverse; /* submit arriba, cancelar abajo visualmente */
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .modal-actions .btn {
+    width: 100%;
+  }
 }

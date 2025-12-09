@@ -24,4 +24,8 @@ export class UserRepositoryFirebase implements UserRepository {
   async updateUserProfile(userId: string, tempUser: User): Promise<void> {
     await this.dataSource.updateUserProfile(userId, tempUser);
   }
+
+  async updateUserPassword(currentPassword: string, newPassword: string): Promise<boolean> {
+    return await this.dataSource.changePasswordWithCurrent(currentPassword, newPassword);
+  }
 }

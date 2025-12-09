@@ -401,6 +401,13 @@ export class UserService {
     }
   }
 
+  async updateUserPassword(currentPassword: string, newPassword: string): Promise<boolean> {
+    if (!newPassword || !validatePassword(newPassword)) {
+      throw new Error("InvalidDataException");
+    }
+    return await this.userRepository.updateUserPassword(currentPassword, newPassword);
+  }
+
   async getUserByEmail(email: string): Promise<User | null> {
     if (!email || !isValidEmail(email)) {
       throw new Error("InvalidDataException");

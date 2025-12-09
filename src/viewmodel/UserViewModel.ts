@@ -280,6 +280,34 @@ export const updateAccountInfo = async (opts: { email?: string; nickname?: strin
   }
 };
 
+export const updateUserPassword = async (currentPassword: string, newPassword: string) => {
+  const svc = getSvc();
+  try {
+    await svc.updateUserPassword(currentPassword, newPassword);
+    
+  } catch (error) {
+    const msg =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null && "message" in error
+          ? String((error as { message?: string }).message)
+          : String(error ?? "");
+    if (msg === "InvalidDataException") {
+      throw { fieldErrors: { newPassword: "Password does not meet requirements" }, original: error };
+    }
+    if (msg.includes("auth/wrong-password")) {
+      throw { fieldErrors: { currentPassword: "Current password is incorrect" }, original: error };
+    }
+    if (msg.includes("auth/too-many-requests")) {
+      throw new Error("Demasiados intentos. Inténtalo más tarde.");
+    }
+    if (msg.includes("auth/invalid-credential")) {
+      throw { fieldErrors: { newPassword: "Current password is incorrect" }, original: error };
+    }
+    throw error instanceof Error ? error : new Error(msg);
+  }
+};
+
 const userViewmodel = {
   getUser,
   updateAccountInfo,

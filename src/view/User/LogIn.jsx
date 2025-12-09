@@ -1,9 +1,11 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useUserViewModel } from "../../viewmodel/UserViewModel";
 
 export default function LogIn({ onSuccess }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectPath = location.state?.from?.pathname || "/";
   const {
     email,
     password,
@@ -24,7 +26,7 @@ export default function LogIn({ onSuccess }) {
       const session = await logIn();
       if (session) {
         if (onSuccess) onSuccess(session);
-        else navigate("/");
+        else navigate(redirectPath, { replace: true });
       }
     } catch (err) {
       setLocalError((err && err.message) || "Error en login");
@@ -37,7 +39,7 @@ export default function LogIn({ onSuccess }) {
       const session = await logInWithGoogle();
       if (session) {
         if (onSuccess) onSuccess(session);
-        else navigate("/");
+        else navigate(redirectPath, { replace: true });
       }
     } catch (err) {
       setLocalError((err && err.message) || "Error al iniciar sesión con Google");

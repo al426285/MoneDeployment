@@ -12,12 +12,10 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { auth } from "../../core/config/firebaseConfig";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 
 import { firebaseApp } from "../../core/config/firebaseConfig";
 import { User } from "../../domain/model/User";
-import {
-
-} from "firebase/auth";
 import { deleteUser as fbDeleteUser } from "firebase/auth";
 import { UserSession } from "../../domain/session/UserSession";
 import { db } from "../../core/config/firebaseConfig";
@@ -104,4 +102,16 @@ export class FirebaseDataSource {
     UserSession.clear();
   }
 
+  async changePasswordWithCurrent(currentPassword: string, newPassword: string) {
+    const user = auth.currentUser;
+    if (!user || !user.email) throw new Error('Usuario no autenticado');
+
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+
+    await reauthenticateWithCredential(user, credential);
+
+    await updatePassword(user, newPassword);
+
+    return true;
+  }
 }
