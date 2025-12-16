@@ -42,7 +42,7 @@ export class VehicleService {
         return this.vehicleRepository.getVehiclesByOwnerId(ownerId);
     }
 
-    //tipo {(bike, electricCar, fuelCar), fueltype{ gasoline, diesel} el electric se le asigna por defecto, consumo{numero}}
+    //tipo {(walking, bike, electricCar, fuelCar), fueltype{ gasoline, diesel} el electric se le asigna por defecto, consumo{numero}}
     async registerVehicle(ownerId: string | undefined, type: string, name: string, fuelType?: FuelType, consumption?: number): Promise<void> {
 
 

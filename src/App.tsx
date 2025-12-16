@@ -29,12 +29,18 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/recover-password" element={<RecuperarContraseña />} />
-        <Route path="/login" element={user ? <Navigate to="/searchroute" replace /> : <LogIn />} />
+        <Route path="/login" element={<LogIn />} />
+      
+       { /* Me da problemas, siempre redirigia 
+                <Route path="/login" element={user ? <Navigate to="/searchroute" replace /> : <LogIn />} />
+
+        */}
 
         {/* Rutas protegidas */}
         <Route element={<RequireAuth />}>
           <Route element={<PrivateLayout />}>
             <Route path="/account" element={<AccountManagement />} />
+            <Route path="/vehicles" element={<VehiclesPage />} />
           </Route>
         </Route>
 

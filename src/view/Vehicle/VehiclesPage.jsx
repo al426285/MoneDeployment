@@ -11,9 +11,18 @@ export default function VehiclesPage() {
     loadVehicles,
     addVehicle,
     deleteVehicle,
+    getFuelUnitsPreference,
+    getElectricUnitsPreference,
   } = VehicleViewModel();
 
   const [searchTerm, setSearchTerm] = useState("");
+
+  //Preferencias de unidades, deberia de venir del viewmodel
+  //seria = get....
+  const [unitPreference, setUnitPreference] = useState({
+    fuel: "L/100km", //getFuelUnitsPreference(),
+    electric: "kWh/100km", //getElectricUnitsPreference()
+  });
 
   const PLUS_ICON_PATH =
     "M12 2a1 1 0 0 1 1 1v8h8a1 1 0 1 1 0 2h-8v8a1 1 0 1 1-2 0v-8H3a1 1 0 1 1 0-2h8V3a1 1 0 0 1 1-1z";
@@ -52,6 +61,7 @@ export default function VehiclesPage() {
     const formState = {
       name: "",
       type: "",
+      units: "",
       fuelType: null,
       consumption: null,
     };
@@ -69,6 +79,26 @@ export default function VehiclesPage() {
       <option value="gasoline" ${formState.fuelType === "gasoline" ? "selected" : ""}>Gasoline</option>
       <option value="diesel" ${formState.fuelType === "diesel" ? "selected" : ""}>Diesel</option>
     `;
+
+    const buildUnitOptions = () => {
+      if (formState.type === "electricCar") {
+        return `
+          <option value="" disabled ${formState.units ? "" : "selected"}>Select measurement unit</option>
+          <option value="km/kWh" ${formState.units === "km/kWh" ? "selected" : ""}>km/kWh</option>
+          <option value="kWh/100km" ${formState.units === "kWh/100km" ? "selected" : ""}>kWh/100km</option>
+        `;
+      }
+
+      if (formState.type === "fuelCar") {
+        return `
+          <option value="" disabled ${formState.units ? "" : "selected"}>Select measurement unit</option>
+          <option value="km/l" ${formState.units === "km/l" ? "selected" : ""}>km/l</option>
+          <option value="L/100km" ${formState.units === "L/100km" ? "selected" : ""}>L/100km</option>
+        `;
+      }
+
+      return "";
+    };
 
     const customClass = {
       confirmButton: "my-confirm-btn",
@@ -139,13 +169,18 @@ export default function VehiclesPage() {
         if (typeResult.isDismissed) return;
 
         formState.type = typeResult.value;
+        formState.units = "";
         formState.fuelType =
           formState.type === "fuelCar"
             ? formState.fuelType
             : formState.type === "electricCar"
               ? "electric"
               : null;
-        step = formState.type === "fuelCar" ? "fuelType" : "consumption";
+        step = formState.type === "fuelCar"
+          ? "fuelType"
+          : formState.type === "electricCar"
+            ? "units"
+            : "consumption";
         continue;
       }
 
@@ -183,17 +218,53 @@ export default function VehiclesPage() {
         if (fuelResult.isDismissed) return;
 
         formState.fuelType = fuelResult.value;
+        step = "units";
+        continue;
+      }
+
+      if (step === "units") {
+        const unitsResult = await Swal.fire({
+          title: "Measurement units",
+          html: `
+            <select id="consumptionUnits" class="my-select">
+              ${buildUnitOptions()}
+            </select>
+          `,
+          background: "#CCD5B9",
+          color: "#585233",
+          customClass,
+          showCancelButton: true,
+          showDenyButton: true,
+          denyButtonText: "Back",
+          confirmButtonText: "Next",
+          focusConfirm: false,
+          preConfirm: () => {
+            const select = Swal.getPopup().querySelector('#consumptionUnits');
+            const value = select?.value;
+            if (!value) {
+              Swal.showValidationMessage("Select a measurement unit");
+              return;
+            }
+            return value;
+          },
+        });
+
+        if (unitsResult.isDenied) {
+          step = formState.type === "fuelCar" ? "fuelType" : "type";
+          continue;
+        }
+        if (unitsResult.isDismissed) return;
+
+        formState.units = unitsResult.value;
         step = "consumption";
         continue;
       }
 
       if (step === "consumption") {
         const unitLabel =
-          formState.type === "fuelCar"
-            ? "L/100km"
-            : formState.type === "electricCar"
-              ? "kWh/100km"
-              : "Kcal/min";
+          formState.type === "fuelCar" || formState.type === "electricCar"
+            ? formState.units || (formState.type === "fuelCar" ? "L/100km" : "kWh/100km")
+            : "Kcal/min";
 
         const consumptionResult = await Swal.fire({
           title: `Consumption (${unitLabel})`,
@@ -236,6 +307,7 @@ export default function VehiclesPage() {
     await addVehicle(
       formState.type,
       formState.name,
+      formState.units || "",
       formState.fuelType,
       formState.consumption ?? undefined
     );
@@ -278,6 +350,82 @@ export default function VehiclesPage() {
   const capitalize = (str) =>
     str.charAt(0).toUpperCase() + str.slice(1);
 
+  const normalizeConsumptionShape = (consumption) => {
+    if (!consumption) return null;
+
+    if (typeof consumption.amount === "number") {
+      return {
+        amount: consumption.amount,
+        unit: consumption.unit,
+      };
+    }
+
+    if (
+      consumption.amount &&
+      typeof consumption.amount.amount === "number"
+    ) {
+      return {
+        amount: consumption.amount.amount,
+        unit: consumption.amount.unit || consumption.unit,
+      };
+    }
+
+    if (typeof consumption === "number") {
+      return { amount: consumption, unit: "" };
+    }
+
+    return null;
+  };
+
+  const convertConsumptionValue = (value, fromUnit, toUnit) => {
+    if (value == null || Number.isNaN(value)) return null;
+    if (!fromUnit || !toUnit || fromUnit === toUnit) return value;
+
+    const ratioUnits = [
+      ["L/100km", "km/l"],
+      ["kWh/100km", "km/kWh"],
+    ];
+    //si alguna de las unidades pasadas se puede convertir
+    const isConvertible = ratioUnits.some(
+      ([a, b]) =>
+        (fromUnit === a && toUnit === b) || (fromUnit === b && toUnit === a)
+    );
+    console.log("isConvertible:", isConvertible, "desde: ", fromUnit, " hasta: ", toUnit);
+
+    if (!isConvertible || value === 0) return value;
+
+    return 100 / value;
+  };
+
+  const formatConsumptionDisplay = (vehicle) => {
+    const normalized = normalizeConsumptionShape(vehicle?.consumption);
+    if (!normalized || normalized.amount == null || !normalized.unit) return "";
+
+    const type = vehicle?.type?.toLowerCase();
+    let targetUnit = normalized.unit;
+
+    if (type === "fuelcar") {
+      targetUnit = unitPreference.fuel;
+    } else if (type === "electriccar") {
+      targetUnit = unitPreference.electric;
+    }
+
+    const convertedValue = convertConsumptionValue(
+      normalized.amount,
+      normalized.unit,
+      targetUnit
+    );
+
+    //Nan, not a number
+    if (convertedValue == null || Number.isNaN(convertedValue)) return "";
+
+    const rounded = convertedValue === Infinity || convertedValue === -Infinity
+      ? "∞"
+      : convertedValue.toFixed(2);
+
+    return `${rounded} ${targetUnit}`.trim();
+  };
+
 
   const renderList = (list) => {
     if (loading) return <li className="item-card item-card--empty">Loading...</li>;
@@ -298,11 +446,9 @@ export default function VehiclesPage() {
           <div className="item-card__title">{v.name}</div>
           <div className="item-card__meta">
 
-            {v.fuelType ? `  ${capitalize(v.fuelType)} •` : ""}
+            {v.fuelType ? `${capitalize(v.fuelType)} • ` : ""}
 
-            {v.consumption?.amount?.amount
-              ? `  ${v.consumption.amount.amount} ${v.consumption.amount.unit}`
-              : ""}
+            {formatConsumptionDisplay(v)}
           </div>
         </div>
 
@@ -332,19 +478,17 @@ export default function VehiclesPage() {
         </button>
       </div>
 
-      <div className="search-bar" style={{ border:'solid 1px #585233' }}>
-        <label htmlFor="vehicle-search" style={{ fontWeight: 'bold' }} className="sr-only">
-          Search vehicles
-        </label>
+      <div className="toolbar" style={{ flexWrap: "wrap", gap: "0.75rem" }}>
         <input
-          id="vehicle-search"
+          className="search-bar"
           type="search"
-          className="search-input"
-          placeholder="Search by name, or type of fuel"
+          placeholder="Search mobility methods by name, type, or fuel..."
+          aria-label="Search mobility methods"
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
-          aria-label="Search vehicles by name, type, or fuel"
         />
+
+
       </div>
 
       {error && <div className="error-banner">{error}</div>}
