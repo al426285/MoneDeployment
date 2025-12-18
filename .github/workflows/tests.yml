@@ -14,6 +14,16 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         
+      - name: Clean install node modules
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
+
+      - name: Clean install dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
+    
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
