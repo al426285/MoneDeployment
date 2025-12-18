@@ -102,6 +102,12 @@ export class RouteFacade {
         };
     }
 
+    async previewRoute(options: RouteRequestOptions, vehicle?: Vehicle): Promise<SerializedRoute> {
+        const plannerOptions = this.applyVehicleOverrides(options, vehicle);
+        const rawRoute = await this.service.requestRoute(plannerOptions);
+        return this.serializeRoute(rawRoute);
+    }
+
     async requestAndSaveRoute(
         options: RouteRequestOptions & { userId?: string; name: string },
         vehicle?: Vehicle

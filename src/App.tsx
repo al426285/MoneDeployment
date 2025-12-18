@@ -12,6 +12,7 @@ import EditPlace from './view/Place/EditPlace'
 import VehiclesPage from './view/vehicle/VehiclesPage'
 import SearchRoute from './view/Route/Searchroute'
 import RouteDetails from './view/Route/RouteDetails'
+import NewRoute from './view/Route/NewRoute'
 import Settings from './view/User/Settings'
 import {Home} from './view/home/Home'
 import { useAuth } from './core/context/AuthContext';
@@ -50,7 +51,7 @@ function App() {
             <Route path="/mobilitymethods" element={<VehiclesPage />} />
             <Route path="/searchroute" element={<SearchRoute />} />
             <Route path="/routedetails" element={<RouteDetails />} />
-            <Route path="/listplaces" element={<ListPlaces />} />
+            <Route path="/newroute" element={<NewRoute />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Route>
