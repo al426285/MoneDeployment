@@ -1188,6 +1188,11 @@ textarea {
   border-radius: 6px;
   color: #585233;
 }
+
+/* SweetAlert2 button order: Cancel left, Confirm right */
+.mone-swal-actions {
+  flex-direction: row-reverse !important;
+}
 .modal-backdrop {
   position: fixed;
   top: 0;

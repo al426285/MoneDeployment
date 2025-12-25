@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { placeViewmodel } from "../../viewmodel/placeViewmodel";
 import EditDeleteActions from "../components/EditDeleteActions.jsx";
@@ -53,7 +54,7 @@ export default function ListPlaces({ onAddPlace, onEditPlace, className = "" }) 
       onAddPlace();
       return;
     }
-    navigate("/newplace");
+    navigate("/places/new");
   };
 
   const findPlace = (id) => places.find((p) => p?.id === id);
@@ -71,17 +72,48 @@ export default function ListPlaces({ onAddPlace, onEditPlace, className = "" }) 
   const handleDeletePlace = async (placeId) => {
     if (!placeId) return;
     const place = findPlace(placeId);
-    const confirmed = window.confirm(`Do you want to remove "${place?.name || "Unnamed place"}"?`);
-    if (!confirmed) return;
-    setDeletingId(placeId);
+    const confirmed = await Swal.fire({
+          title: "Are you sure?",
+          text: `You are about to delete "${place.name}". This action cannot be undone.`,
+          icon: "warning",
+          showCancelButton: true,
+          cancelButtonText: "Cancel",
+          confirmButtonText: "Yes, delete",
+          background: "#E0E6D5",
+          color: "#585233",
+          customClass: {
+            actions: "mone-swal-actions",
+            cancelButton: "my-cancel-btn",
+            confirmButton: "my-confirm-btn"
+          }
+        });
+      if (confirmed.isConfirmed) {
     try {
+                setDeletingId(placeId);
+
       await placeViewmodel.deletePlace(placeId);
+      // mensaje de OK
+          await Swal.fire({
+            title: "Deleted!",
+            text: `"${place.name}" has been removed successfully.`,
+            icon: "success",
+            background: "#E0E6D5",
+            color: "#585233",
+            customClass: {
+              actions: "mone-swal-actions",
+              confirmButton: "my-confirm-btn",
+            }
+          });
       setPlaces((prev) => prev.filter((item) => item.id !== placeId));
     } catch (err) {
       setError(err?.message || "Unable to delete place.");
     } finally {
       setDeletingId("");
     }
+    
+          
+        }
+   return;
   };
 
   const formatMeta = (place) => {

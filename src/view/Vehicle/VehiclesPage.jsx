@@ -324,6 +324,7 @@ export default function VehiclesPage() {
       background: "#E0E6D5",
       color: "#585233",
       customClass: {
+        actions: "mone-swal-actions",
         confirmButton: "my-confirm-btn",
         cancelButton: "my-cancel-btn"
       }
