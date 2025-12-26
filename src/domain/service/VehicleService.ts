@@ -88,4 +88,8 @@ export class VehicleService {
     async deleteVehicle(ownerId: string, vehicleName: string): Promise<void> {
         return this.vehicleRepository.deleteVehicle(ownerId, vehicleName);
     }
+
+    async editVehicle(ownerId: string, vehicleName: string, updates: Partial<Vehicle>): Promise<Vehicle> {
+        //sin implementar
+    }
 }
