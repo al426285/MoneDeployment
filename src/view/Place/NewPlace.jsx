@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import LeafletMap from "../components/LeafletMap.jsx";
 import { placeViewmodel } from "../../viewmodel/placeViewmodel";
+import CustomSwal from "../../core/utils/CustomSwal";
 
 const SUCCESS_BUTTON_STYLE = {
   backgroundColor: "var(--color-success, #198754)",
@@ -86,6 +87,12 @@ export default function NewPlace() {
         toponymicAddress: baseName || undefined,
       };
       const saved = await placeViewmodel.savePlace(payload, user?.uid);
+      await CustomSwal.fire({
+        title: "Place saved",
+        text: `Place "${saved.name}" saved successfully.`,
+        icon: "success",
+        confirmButtonText: "Close",
+      });
       setSuccessMessage(`Place "${saved.name}" saved successfully.`);
     } catch (err) {
       const msg = err?.message || "The place could not be saved.";
@@ -366,11 +373,6 @@ export default function NewPlace() {
               </button>
             </div>
 
-            {isSuccess && (
-              <p className="success-text" style={{ marginTop: 1, textAlign: "center" }} aria-live="polite">
-                {successMessage}
-              </p>
-            )}
 
             {formError && (
               <p className="error-text" style={{ textAlign: "center", margin: 0 }}>

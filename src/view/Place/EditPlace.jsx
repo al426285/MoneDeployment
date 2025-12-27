@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import LeafletMap from "../components/LeafletMap.jsx";
 import { placeViewmodel } from "../../viewmodel/placeViewmodel";
+import CustomSwal from "../../core/utils/CustomSwal";
 
 const SUCCESS_BUTTON_STYLE = {
   backgroundColor: "var(--color-success, #198754)",
@@ -236,6 +237,12 @@ export default function EditPlace() {
         latitude: latValue,
         longitude: lngValue,
         toponymicAddress: baseName || undefined,
+      });
+      await CustomSwal.fire({
+        title: "Place updated",
+        text: `Place "${finalName}" updated successfully.`,
+        icon: "success",
+        confirmButtonText: "Close",
       });
       setSuccessMessage(`Place "${finalName}" updated successfully.`);
     } catch (err) {
@@ -480,11 +487,6 @@ export default function EditPlace() {
               </button>
             </div>
 
-            {isSuccess && (
-              <p className="success-text" style={{ marginTop: 1, textAlign: "center" }} aria-live="polite">
-                {successMessage}
-              </p>
-            )}
 
             {formError && (
               <p className="error-text" style={{ textAlign: "center", margin: 0 }}>
