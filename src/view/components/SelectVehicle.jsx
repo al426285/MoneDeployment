@@ -1,5 +1,37 @@
 import React, { useState, useEffect, useRef } from "react";
 // import opcional del viewmodel por defecto (puedes pasar otro fetcher vía props)
+import userViewmodel from "../../viewmodel/UserViewModel";
+
+const getDefaultOption = (mode) => {
+  if (mode === "bike") {
+    return { id: "default-bike", name: "Default", meta: "6 kcal/min" };
+  }
+  if (mode === "walk") {
+    return { id: "default-walk", name: "Default", meta: "4.5 kcal/min" };
+  }
+  return { id: "default-vehicle", name: "Default", meta: "6.5 l/100km" };
+};
+
+const getOptionValue = (option) => {
+  const rawValue = option?.id ?? option?.name ?? option?.label ?? "";
+  return String(rawValue).trim();
+};
+
+const normalizeOptions = (list, mode) => {
+  const arr = Array.isArray(list) ? list : [];
+  const cleaned = arr
+    .map((opt) => {
+      const optionValue = getOptionValue(opt);
+      if (!optionValue) return null;
+      return opt;
+    })
+    .filter(Boolean);
+  const defaultOpt = getDefaultOption(mode);
+  const defaultValue = getOptionValue(defaultOpt);
+  const hasDefault = cleaned.some((opt) => getOptionValue(opt) === defaultValue);
+  if (!hasDefault) cleaned.unshift(defaultOpt);
+  return cleaned;
+};
 
 export default function SelectVehicle({
   mobility = "vehicle",

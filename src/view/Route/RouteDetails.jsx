@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { RouteService } from "../../domain/service/RouteService";
 import CustomSwal from "../../core/utils/CustomSwal";
@@ -276,6 +276,19 @@ export default function RouteDetails() {
     },
     [originPoint, destinationPoint, searchRoute, user?.uid, vehicleLookup]
   );
+  const resolvedConsumptionDisplay = useMemo(() => {
+    if (selectedVehicle) {
+      const vehicleConsumption = formatVehicleConsumptionDisplay(selectedVehicle);
+      if (vehicleConsumption) return vehicleConsumption;
+    }
+    return formatConsumption(route?.consumptionPer100Km, route?.consumptionUnit);
+  }, [route?.consumptionPer100Km, route?.consumptionUnit, selectedVehicle]);
+
+  const resolvedCostDisplay = useMemo(() => {
+    const vehicleEstimate = computeVehicleCostDisplay(selectedVehicle, route, priceSnapshot);
+    if (vehicleEstimate) return vehicleEstimate;
+    return formatCost(route?.cost, route?.currency);
+  }, [priceSnapshot, route, selectedVehicle]);
 
   const handleMobilityChange = useCallback(
     (nextMobility) => {
