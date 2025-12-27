@@ -13,7 +13,6 @@ export class RouteProxy implements IRouteProvider {
     const k = this.key(origin, dest, mob, type);
 
     if (this.cache.has(k)) {
-      console.log("📦 Ruta obtenida desde caché");
       return this.cache.get(k)!;
     }
 

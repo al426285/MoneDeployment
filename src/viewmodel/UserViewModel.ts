@@ -123,23 +123,25 @@ export const useUserViewModel = (onNavigate: (path: string) => void) => {
     }
   };
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = async (password?: string): Promise<boolean> => {
     setLoading(true);
     try {
       const uid = getCurrentUid();
       if (!uid) {
         setMessage("No user is currently logged in.");
-        return;
+        return false;
       }
       const user = await svc.getUserById(uid);
       const email = user?.getEmail() ?? "";
-      if(await svc.deleteUser(email)){
-      setMessage("Account successfully deleted.");
-      onNavigate("/signup");
-    }
+      if (await svc.deleteUser(email, password ?? "")) {
+        setMessage("Account successfully deleted.");
+        return true;
+      }
+      return false;
     } catch (error) {
       const msg = (error as Error).message ?? "Error deleting account";
       setMessage("Error: " + msg);
+      return false;
     } finally {
       setLoading(false);
     }

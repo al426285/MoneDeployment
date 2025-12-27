@@ -12,6 +12,7 @@ import {
   signInWithPopup,
   EmailAuthProvider,
   reauthenticateWithCredential,
+  reauthenticateWithPopup,
   updatePassword,
   confirmPasswordReset,
   sendPasswordResetEmail, verifyBeforeUpdateEmail,
@@ -35,9 +36,25 @@ export class FirebaseAuthAdapter implements AuthProvider {
     const currentUser = this.auth.currentUser;
     if (!currentUser || currentUser.uid !== userId) throw new Error("RequiresRecentLogin");
 
-    //lo reautenticamos
-    const credential = EmailAuthProvider.credential(currentUser.email ?? "", currentPassword ?? "");
-    await reauthenticateWithCredential(currentUser, credential);
+    // Re-authenticate depending on provider
+    const providerIds = (currentUser.providerData ?? [])
+      .map((p) => p?.providerId)
+      .filter((id): id is string => Boolean(id));
+
+    const isEmailProvider = providerIds.includes(EmailAuthProvider.PROVIDER_ID);
+
+    if (isEmailProvider) {
+      const email = currentUser.email ?? "";
+      const password = currentPassword ?? "";
+      if (!email || !password) {
+        throw new Error("MissingPassword");
+      }
+      const credential = EmailAuthProvider.credential(email, password);
+      await reauthenticateWithCredential(currentUser, credential);
+    } else {
+      // Fallback for Google/other providers: reauth with popup
+      await reauthenticateWithPopup(currentUser, googleProvider);
+    }
 
 
     // Eliminamos de Firebase Authentication
@@ -47,9 +64,6 @@ export class FirebaseAuthAdapter implements AuthProvider {
       console.log("Error deleting user from Firebase Auth:", error);
       throw handleAuthError(error as FirebaseError);
     }
-
-    // Limpiar sesión local
-    UserSession.clear();
 
   }
 
@@ -76,7 +90,6 @@ export class FirebaseAuthAdapter implements AuthProvider {
     try {
       await signOut(this.auth);
       UserSession.clear();
-      // console.log("logged out")
     } catch (Error) {
       throw handleAuthError(Error as FirebaseError);
     }

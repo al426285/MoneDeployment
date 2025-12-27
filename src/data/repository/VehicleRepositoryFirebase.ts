@@ -95,6 +95,8 @@ export class VehicleRepositoryFirebase implements VehicleRepositoryInterface {
     async saveVehicle(ownerId: string, vehicle: Vehicle): Promise<void> {
         // Usamos collectionForUser para escribir siempre dentro de /users/{uid}/vehicles
         // en lugar de en una colección global "vehicles" que mezclaría datos de todos los usuarios.
+      
+    //  console.log("Guardando vehículo para ownerId:", ownerId, "Vehículo:", vehicle);
         await addDoc(collectionForUser(ownerId), {
             ownerId,
             type: vehicle.type,

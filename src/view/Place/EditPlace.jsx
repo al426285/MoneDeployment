@@ -277,11 +277,34 @@ export default function EditPlace() {
   return (
     <section className="place-row">
       <aside className="place-card default-container with-border">
+        <button
+          type="button"
+          onClick={handleBack}
+          style={{
+            alignSelf: "flex-start",
+            marginBottom: "0.5rem",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            color: "var(--color-primary)",
+          }}
+          aria-label="Go back"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M15.5 19.5 8 12l7.5-7.5 1.4 1.4L10.8 12l6.1 6.1z"
+            />
+          </svg>
+          Back
+        </button>
+
         <div className="card-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 className="card-title">Edit Place</h2>
-          <button type="button" className="btn btn-secondary" onClick={handleBack}>
-            Back
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="stack">

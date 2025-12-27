@@ -46,7 +46,6 @@ const serializePlace = (place: Place | Partial<Place>) => {
 
 export class PlaceRepositoryFirebase implements PlaceRepository {
 	async getPlacesByUser(userId: string): Promise<any[]> {
-		console.log("dentro getPlacesByUser");
 		try{const placesRef = collectionForUser(userId);
 		const q = query(placesRef, orderBy("createdAt", "desc"));
 		const snapshot = await getDocs(q);

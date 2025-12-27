@@ -7,8 +7,8 @@ export const AppNav = () => {
 
   const navItems = [
     { label: "Explore", href: "/searchroute" },
-    { label: "My routes", href: "/myroutes" },
-    { label: "My places", href: "/myplaces" },
+    { label: "My routes", href: "/routes" },
+    { label: "My places", href: "/places" },
   ];
 
   const profileItems = [
@@ -17,7 +17,7 @@ export const AppNav = () => {
   ];
 
   return (
-    <nav className="font-semibold" style={{ color: "#CCD5B9", backgroundColor: "#585233" }}>
+    <nav className="font-semibold" style={{ color: "#CCD5B9", backgroundColor: "#585233", position: "relative", zIndex: 9999 }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -56,8 +56,8 @@ export const AppNav = () => {
               </button>
               {profileOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-56 rounded-md shadow-lg z-50 "
-                  style={{ backgroundColor: "#CCD5B9", color: "#585233", border: "3px solid #585233", padding: 0 }}
+                  className="absolute right-0 mt-2 w-56 rounded-md shadow-lg"
+                  style={{ backgroundColor: "#CCD5B9", color: "#585233", border: "3px solid #585233", padding: 0, zIndex: 99999 }}
                 >
                   {profileItems.map((item, idx) => (
                     <a
@@ -104,8 +104,8 @@ export const AppNav = () => {
       {/* Menu desplegable, &&--> si true muestra lo siguiente */}
       {isOpen && (
        <div
-  className="absolute top-16 left-0 w-full md:hidden px-2 pt-2 pb-3 space-y-1 z-50"
-  style={{ backgroundColor: "#585233" }}
+  className="absolute top-16 left-0 w-full md:hidden px-2 pt-2 pb-3 space-y-1"
+  style={{ backgroundColor: "#585233", zIndex: 9999 }}
 >
           {navItems.map((item) => (
             <a

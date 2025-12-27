@@ -68,6 +68,7 @@ export class FuelCar implements Vehicle {
         }
 
         this.name = name;
+        this.fuelType = fuelType;
         this.consumption = { amount: consumptionAmount, unit: 'L/100km' };
     }
 

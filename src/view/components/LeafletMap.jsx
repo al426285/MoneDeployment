@@ -94,10 +94,18 @@ export default function LeafletMap({
     <MapContainer
       center={center}
       zoom={zoom}
+      minZoom={2}
       scrollWheelZoom
+      maxBounds={[[-85, -180], [85, 180]]}
+      maxBoundsViscosity={1}
+      worldCopyJump={false}
       style={{ width: "100%", height: "100%", minHeight: 420, ...(style || {}) }}
     >
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution="&copy; OpenStreetMap contributors"
+        noWrap
+      />
       <ClickSetter onMapClick={onMapClick} />
       {!autoFitBounds && <MapCenterer center={center} />}
       {autoFitBounds && <AutoFitBounds markers={markers} polyline={polyline} enabled />}

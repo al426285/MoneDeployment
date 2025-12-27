@@ -34,7 +34,6 @@ export const Contact = () => {
                 <Stepper
                     initialStep={1}
                     onStepChange={(step) => {
-                        console.log(step);
                     }}
                     backButtonText="Previous"
                     nextButtonText="Next"

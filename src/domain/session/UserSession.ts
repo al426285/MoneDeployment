@@ -13,7 +13,7 @@ export class UserSession {
     }
 
     toPlain() {
-        return { userId: this.userId, tokenFirebase: this.tokenFirebase };
+        return { userId: this.userId };
     }
 
     static fromPlain(o: any): UserSession {
@@ -26,7 +26,8 @@ export class UserSession {
 
     saveToCache() {
         try {
-            localStorage.setItem("user_session", JSON.stringify(this.toPlain()));
+            const payload = { ...this.toPlain(), cachedAt: Date.now() };
+            localStorage.setItem("user_session", JSON.stringify(payload));
         } catch { /* ignore */ }
     }
 
@@ -67,11 +68,19 @@ export class UserSession {
             if (!raw) return null;
 
             const data = JSON.parse(raw);
+            if (!data || typeof data !== "object") return null;
+
+            const cachedAt = typeof data.cachedAt === "number" ? data.cachedAt : null;
+            const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+            if (cachedAt == null) return null;
+            if (Date.now() - cachedAt > SESSION_TTL_MS) {
+                // expired
+                try { localStorage.removeItem("user_session"); } catch {}
+                return null;
+            }
+
             const session = UserSession.fromPlain(data);
-
-            // Si está corrupta → descartar
-            if (!session.isLoggedIn()) return null;
-
+            if (!session.userId) return null;
             return session;
         } catch {
             return null;

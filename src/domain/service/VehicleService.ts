@@ -80,7 +80,6 @@ export class VehicleService {
 
     
 
-       // console.log("Created vehicle:", vehicle.type);   
 
         // Guardamos en Firebase
         await this.vehicleRepository.saveVehicle(ownerId, vehicle);

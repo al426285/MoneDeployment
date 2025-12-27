@@ -74,32 +74,17 @@ export class FirebaseDataSource {
     await updateDoc(ref, payload);
   }
 
-  async deleteUser(email: string): Promise<void> {
-    const currentUser = this.auth.currentUser; //no se puede gastar auth desde aquí
+  async deleteUser(email: string): Promise<{ id: string; [key: string]: any } | null> {
     const userbbdd = await this.getUserByEmail(email);
-
-   // console.log("Deleting user with email:", email, "userbbdd", userbbdd, "and id:", userbbdd?.id);
-
 
     if (!userbbdd) {
       throw new Error("UserNotFound");
     }
 
-    /*if (!currentUser || currentUser.uid !== userbbdd.id) {
-      console.log("Current user ID:", currentUser?.uid, "does not match userbbdd ID:", userbbdd.id);
-      throw new Error("RequiresRecentLogin");
-    }*/
+    const ref = doc(db, "users", userbbdd.id);
+    await deleteDoc(ref);
 
-    // Eliminamos perfil de Firestore
-    try {
-      const ref = doc(db, "users", userbbdd.id);
-      await deleteDoc(ref);
-    } catch (error) {
-      console.error("Firestore cleanup failed", error);
-    }
-
-    //  Limpiar sesión local
-    UserSession.clear();
+    return { id: userbbdd.id, ...userbbdd };
   }
 
   async changePasswordWithCurrent(currentPassword: string, newPassword: string) {

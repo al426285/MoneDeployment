@@ -42,6 +42,20 @@ export class EnergyPriceGateway implements CostEstimatorGateway {
 
   constructor(private readonly ttlMs: number = DEFAULT_TTL_MS) {}
 
+  /**
+   * Devuelve información sobre la caché actual para diagnosticar expiración.
+   * - `snapshot`: el `PriceSnapshot` almacenado (si existe)
+   * - `expiresAt`: timestamp (ms) en que caduca la caché, o null si no hay caché
+   * - `ttlMs`: el TTL configurado en ms
+   */
+  getCacheInfo() {
+    return {
+      snapshot: this.cache ?? null,
+      expiresAt: this.cache ? this.cacheExpiresAt : null,
+      ttlMs: this.ttlMs,
+    };
+  }
+
   async getLatestPrices(): Promise<PriceSnapshot> {
     const now = Date.now();
     if (this.cache && now < this.cacheExpiresAt) {

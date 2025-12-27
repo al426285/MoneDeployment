@@ -195,32 +195,46 @@ export class UserService {
   //Flujo de acciones: miarar si la sesion esrta abierta (primero mirar chache), obtener email, cerrar sesión, borrar usuario db, borrar datos, ir a signup
   async deleteUser(email: string, password: string): Promise<boolean> {
     try {
-      //Contemplar hacer una comprobación de que email y currentUserId son el mismo usuario
-      //Contemplar reautenticar aquí: par que esté cerca del borrado en FireStore, pero no en él porque ahí no se puede usar auth
       const session = UserSession.loadFromCache();
       
       if (!session) throw new Error("UserNotFound");
 
-    //  const userbbdd = await this.userRepository.getUserByEmail(email);
 
       const currentUserId = session.userId;
-       
-      //    const useridbbdd = userbbdd?.id;
-      // if (!currentUserId || !session) {
-      //   throw new Error("UserNotAuthenticated");
-      // }
-      // if (!useridbbdd || useridbbdd !== session?.userId) {
-      //   throw new Error("UserMismatch");
-      // }
-      try {
-        //borramos de firestore
-        await this.userRepository.deleteUser(email);
-        //borramos de auth firebase
-        await this.authProvider.deleteUser(currentUserId, password);
-        return true;
+
+      const userbbdd = await this.userRepository.getUserByEmail(email);
+      if (!userbbdd) {
+        throw new Error("UserNotFound");
       }
-      catch (error) {
-        throw new Error(error);
+
+      if (userbbdd.id && currentUserId && userbbdd.id !== currentUserId) {
+        throw new Error("UserMismatch");
+      }
+
+      // Delete Firestore profile first, saving its data for compensation
+      const deletedSnapshot = await this.userRepository.deleteUser(email);
+
+      try {
+        // Then delete authentication record
+        await this.authProvider.deleteUser(currentUserId, password);
+        // Both deleted successfully: clear local session
+        try {
+          UserSession.clear();
+        } catch {/* ignore */}
+        return true;
+      } catch (authErr) {
+        // Auth delete failed — try to restore Firestore document
+        try {
+          if (deletedSnapshot && deletedSnapshot.id) {
+            const restoredUser = new User(deletedSnapshot.email ?? "", deletedSnapshot.nickname ?? "");
+            await this.userRepository.saveUser(deletedSnapshot.id, restoredUser);
+          }
+        } catch (restoreErr) {
+          // If restore also failed, throw a composite error
+          throw new Error("AuthDeleteFailedAndRestoreFailed: " + String(authErr) + " / " + String(restoreErr));
+        }
+
+        throw authErr;
       }
 
     } catch (error) {

@@ -185,3 +185,102 @@ export const useRouteViewmodel = (): RouteViewmodelState => {
 		reset,
 	};
 };
+
+
+ export function calculateRouteCost(vehicle, route, priceSnapshot):number | null {
+  if (!vehicle || !route) return null;
+  const normalized = normalizeVehicleConsumption(vehicle);
+  if (!normalized) return null;
+
+  const distanceKm = Number.isFinite(route.distance) ? route.distance : null;
+  const durationMin = Number.isFinite(route.duration) ? route.duration : null;
+  const unit = normalized.unit ?? "";
+  const type = (vehicle.type ?? "").toLowerCase();
+
+  console.log("eoooooooooo ", type);
+  if ((type === "fuelcar" || type === "fuel car") && distanceKm != null && priceSnapshot) {
+    //normalized value es el consumo en l/100km
+    console.log("aqui", route.distance, normalized.value);
+    const liters = (distanceKm / 100) * normalized.value;
+    const fuelType = (vehicle.fuelType ?? "gasoline").toLowerCase();
+    const dieselPrice = priceSnapshot.dieselPerLiter;
+    console.log("diesel price", dieselPrice);
+    const gasolinePrice = priceSnapshot.gasolinePerLiter;
+    let fuelPrice;
+
+    console.log("tioooo", fuelType);
+    if (fuelType === "diesel") {
+      // "??"" le dice que si por lo que sea es undefined use la otra
+      fuelPrice = dieselPrice ?? gasolinePrice;
+      console.log("dieseeel", fuelPrice);
+
+    } else {
+      fuelPrice = gasolinePrice ?? dieselPrice;
+      console.log("gasofaa", fuelPrice);
+
+    }
+    console.log("fuel price", fuelPrice);
+    const currency = priceSnapshot.currency ?? "EUR";
+    console.log("currency", currency);
+    console.log("liters", liters);
+    console.log("fuelprice", fuelPrice);
+    console.log("final", liters * fuelPrice);
+    if (Number.isFinite(liters) && Number.isFinite(fuelPrice)) {
+      return formatCost(liters * fuelPrice, currency);
+    }
+  }
+
+  if ((type === "electriccar" || type === "electric car") && distanceKm != null && priceSnapshot) {
+    if (!unit.includes("kwh")) return null;
+    const kwh = (distanceKm / 100) * normalized.value;
+    const pricePerKwh = priceSnapshot.electricityPerKwh;
+    const currency = priceSnapshot.currency ?? "EUR";
+    if (Number.isFinite(kwh) && Number.isFinite(pricePerKwh)) {
+      return formatCost(kwh * pricePerKwh, currency);
+    }
+  }
+
+  if ((type === "walking" || type === "bike" || type === "bicycle") && durationMin != null) {
+    if (!unit.includes("kcal")) return null;
+    const totalCalories = durationMin * normalized.value;
+    if (Number.isFinite(totalCalories)) {
+      return `${Math.round(totalCalories)} kcal`;
+    }
+  }
+
+  return null;
+};
+
+
+function normalizeVehicleConsumption(vehicle): { value: number; unit: string | null } | null {
+  if (!vehicle?.consumption) return null;
+  const base = vehicle.consumption;
+  const maybeAmount = base.amount.amount;
+  //console.log("eooooo", base.amount.unit);
+  if (typeof maybeAmount === "number") {
+    return {
+      value: maybeAmount,
+      unit: (base.amount.unit ?? "").toLowerCase() || base.unit || null,
+    };
+  }
+  if (maybeAmount && typeof maybeAmount.amount === "number") {
+    const detectedUnit = maybeAmount.unit ?? base.unit;
+    return {
+      value: maybeAmount.amount,
+      unit: (detectedUnit ?? "").toLowerCase() || detectedUnit || null,
+    };
+  }
+  return null;
+};
+
+
+function formatCost(amount, currency = "EUR"): number | string {
+  // console.log("formatCost", amount, currency);
+
+  if (!Number.isFinite(amount)) return "—";
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`;
+  }
+};

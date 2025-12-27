@@ -14,7 +14,7 @@ import SearchRoute from './view/Route/Searchroute'
 import RouteDetails from './view/Route/RouteDetails'
 import NewRoute from './view/Route/NewRoute'
 import Settings from './view/User/Settings'
-import {Home} from './view/home/Home'
+import { Home } from './view/home/Home'
 import { useAuth } from './core/context/AuthContext';
 import AppNav from './view/components/AppNav';
 import AppFooter from "./view/components/AppFooter";
@@ -33,12 +33,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/recover-password" element={<RecuperarContraseña />} />
-        <Route path="/login" element={<LogIn />} />
-      
-       { /* Me da problemas, siempre redirigia 
-                <Route path="/login" element={user ? <Navigate to="/searchroute" replace /> : <LogIn />} />
-
-        */}
+        <Route path="/login" element={user ? <Navigate to="/searchroute" replace /> : <LogIn />} />
 
         {/* Rutas protegidas */}
         <Route element={<RequireAuth />}>
@@ -53,12 +48,14 @@ function App() {
             <Route path="/routedetails" element={<RouteDetails />} />
             <Route path="/newroute" element={<NewRoute />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/vehicles" element={<VehiclesPage />}></Route>
+
           </Route>
         </Route>
 
-        {/* Fallback para rutas no encontradas */}
-        <Route path="*" element={<NotFoundRedirect />} />
-      </Routes>
+          {/* Fallback para rutas no encontradas */}
+          <Route path="*" element={<NotFoundRedirect />} />
+        </Routes>
       </div>
     </BrowserRouter>
   )
@@ -78,9 +75,9 @@ const RequireAuth = () => {
 
 const PrivateLayout = () => (
   <>
-    <AppNav /> 
+    <AppNav />
     <main className="app-main"><Outlet /></main>
-    <AppFooter/>
+    <AppFooter />
   </>
 );
 
