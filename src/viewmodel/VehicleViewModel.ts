@@ -5,7 +5,7 @@ import { UserSession } from "../domain/session/UserSession";
 import { VehicleRepositoryFirebase } from "../data/repository/VehicleRepositoryFirebase";
 
 export function VehicleViewModel() {
-    const vehicleService = VehicleService.getInstance(new VehicleRepositoryFirebase()); //pasamos el repositorio concreto aquí
+    const vehicleService = VehicleService.getInstance(new VehicleRepositoryFirebase());
 
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [loading, setLoading] = useState(false);

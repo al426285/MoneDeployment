@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 // import opcional del viewmodel por defecto (puedes pasar otro fetcher vía props)
-import userViewmodel from "../viewmodels/userViewmodel";
 
 export default function SelectVehicle({
   mobility = "vehicle",

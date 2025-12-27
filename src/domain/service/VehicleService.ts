@@ -5,6 +5,7 @@ import type { FuelType } from "../model/VehicleInterface";
 import { isValidVehicleName } from "../../core/utils/validators";
 import { UserSession } from "../session/UserSession";
 import type { Vehicle } from "../model/VehicleInterface";
+import { VehicleRepositoryFirebase } from "../../data/repository/VehicleRepositoryFirebase";
 
 
 export class VehicleService {
@@ -17,10 +18,8 @@ export class VehicleService {
     // método para obtener la instancia singleton
     public static getInstance(vehicleRepository?: VehicleRepository): VehicleService {
         if (!VehicleService.instance) {
-            if (!vehicleRepository) {
-                throw new Error("VehicleRepository must be provided for the first initialization");
-            }
-            VehicleService.instance = new VehicleService(vehicleRepository);
+            const repo = vehicleRepository ?? new VehicleRepositoryFirebase();
+            VehicleService.instance = new VehicleService(repo);
         } else if (vehicleRepository) {
             VehicleService.instance.vehicleRepository = vehicleRepository;
         }
