@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import EditDeleteActions from "../components/EditDeleteActions.jsx";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
-import Swal from "sweetalert2";
+import CustomSwal from "../../core/utils/CustomSwal.js";
 import { isValidVehicleName } from "../../core/utils/validators";
 export default function VehiclesPage() {
   const {
@@ -100,18 +100,11 @@ export default function VehiclesPage() {
       return "";
     };
 
-    const customClass = {
-      confirmButton: "my-confirm-btn",
-      cancelButton: "my-cancel-btn",
-      denyButton: "my-back-btn",
-      input: "my-input",
-    };
-
     let step = "name";
 
     while (true) {
       if (step === "name") {
-        const nameResult = await Swal.fire({
+        const nameResult = await CustomSwal.fire({
           title: "Vehicle name",
           input: "text",
           inputValue: formState.name,
@@ -119,9 +112,6 @@ export default function VehiclesPage() {
           showCancelButton: true,
           confirmButtonText: "Next",
           cancelButtonText: "Cancel",
-          background: "#CCD5B9",
-          color: "#585233",
-          customClass,
           inputValidator: (value) => {
             if (!value) return "You need to write something!";
             if (!isValidVehicleName(value)) return "Invalid name format, cannot contain special characters or letter 'ñ'.";
@@ -136,26 +126,23 @@ export default function VehiclesPage() {
       }
 
       if (step === "type") {
-        const typeResult = await Swal.fire({
+        const typeResult = await CustomSwal.fire({
           title: "Vehicle type",
           html: `
             <select id="vehicleType" class="my-select">
               ${buildTypeOptions()}
             </select>
           `,
-          background: "#CCD5B9",
-          color: "#585233",
-          customClass,
           showCancelButton: true,
           showDenyButton: true,
           denyButtonText: "Back",
           confirmButtonText: "Next",
           focusConfirm: false,
           preConfirm: () => {
-            const select = Swal.getPopup().querySelector('#vehicleType');
+            const select = CustomSwal.getPopup().querySelector('#vehicleType');
             const value = select?.value;
             if (!value) {
-              Swal.showValidationMessage("You must select a type");
+              CustomSwal.showValidationMessage("You must select a type");
               return;
             }
             return value;
@@ -185,26 +172,23 @@ export default function VehiclesPage() {
       }
 
       if (step === "fuelType") {
-        const fuelResult = await Swal.fire({
+        const fuelResult = await CustomSwal.fire({
           title: "Fuel Type",
           html: `
             <select id="fuelType" class="my-select">
               ${buildFuelOptions()}
             </select>
           `,
-          background: "#CCD5B9",
-          color: "#585233",
-          customClass,
           showCancelButton: true,
           showDenyButton: true,
           denyButtonText: "Back",
           confirmButtonText: "Next",
           focusConfirm: false,
           preConfirm: () => {
-            const select = Swal.getPopup().querySelector('#fuelType');
+            const select = CustomSwal.getPopup().querySelector('#fuelType');
             const value = select?.value;
             if (!value) {
-              Swal.showValidationMessage("Select a fuel type");
+              CustomSwal.showValidationMessage("Select a fuel type");
               return;
             }
             return value;
@@ -223,26 +207,23 @@ export default function VehiclesPage() {
       }
 
       if (step === "units") {
-        const unitsResult = await Swal.fire({
+        const unitsResult = await CustomSwal.fire({
           title: "Measurement units",
           html: `
             <select id="consumptionUnits" class="my-select">
               ${buildUnitOptions()}
             </select>
           `,
-          background: "#CCD5B9",
-          color: "#585233",
-          customClass,
           showCancelButton: true,
           showDenyButton: true,
           denyButtonText: "Back",
           confirmButtonText: "Next",
           focusConfirm: false,
           preConfirm: () => {
-            const select = Swal.getPopup().querySelector('#consumptionUnits');
+            const select = CustomSwal.getPopup().querySelector('#consumptionUnits');
             const value = select?.value;
             if (!value) {
-              Swal.showValidationMessage("Select a measurement unit");
+              CustomSwal.showValidationMessage("Select a measurement unit");
               return;
             }
             return value;
@@ -266,7 +247,7 @@ export default function VehiclesPage() {
             ? formState.units || (formState.type === "fuelCar" ? "L/100km" : "kWh/100km")
             : "Kcal/min";
 
-        const consumptionResult = await Swal.fire({
+        const consumptionResult = await CustomSwal.fire({
           title: `Consumption (${unitLabel})`,
           input: "number",
           inputValue: formState.consumption ?? "",
@@ -276,17 +257,14 @@ export default function VehiclesPage() {
           showDenyButton: true,
           denyButtonText: "Back",
           confirmButtonText: "Save",
-          background: "#CCD5B9",
-          color: "#585233",
-          customClass,
           preConfirm: (value) => {
             if (!value) {
-              Swal.showValidationMessage("Consumption is required");
+              CustomSwal.showValidationMessage("Consumption is required");
               return;
             }
             const numeric = parseFloat(value);
             if (Number.isNaN(numeric) || numeric <= 0) {
-              Swal.showValidationMessage("Consumption must be greater than 0");
+              CustomSwal.showValidationMessage("Consumption must be greater than 0");
               return;
             }
             return numeric;
@@ -315,19 +293,13 @@ export default function VehiclesPage() {
   };
 
   const handleDelete = async (id) => {
-    const result = await Swal.fire({
+    const result = await CustomSwal.fire({
       title: "Are you sure?",
       text: `You are about to delete "${id}". This action cannot be undone.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes, delete",
       cancelButtonText: "Cancel",
-      background: "#E0E6D5",
-      color: "#585233",
-      customClass: {
-        confirmButton: "my-confirm-btn",
-        cancelButton: "my-cancel-btn"
-      }
     });
 
     // solo si confirma borramos
@@ -335,15 +307,10 @@ export default function VehiclesPage() {
       await deleteVehicle(id);
 
       // mensaje de OK
-      await Swal.fire({
+      await CustomSwal.fire({
         title: "Deleted!",
         text: `"${id}" has been removed successfully.`,
         icon: "success",
-        background: "#E0E6D5",
-        color: "#585233",
-        customClass: {
-          confirmButton: "my-confirm-btn",
-        }
       });
     }
   };

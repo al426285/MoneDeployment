@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach, vi } from "vitest";
 import { RouteService } from "../../../src/domain/service/RouteService";
 import { OpenRouteServiceAdapter } from "../../../src/data/provider/OpenRouteServiceAdapter";
 import { OpenRouteServiceHttpClient } from "../../../src/data/provider/OpenRouteServiceHttpClient";
+import { UserSession } from "../../../src/domain/session/UserSession";
 
 const resetRouteServiceSingleton = () => {
 
@@ -132,5 +133,86 @@ describe("Integration: RouteService + OpenRouteServiceAdapter (mocked ORS)", () 
         routeType: "shortest",
       })
     ).rejects.toThrow("InvalidDataException");
+  });
+
+  test("E5 save route: valid session saves with repository", async () => {
+    const fetchSpy = vi.spyOn(globalThis as any, "fetch").mockResolvedValue(
+      mockORSResponseForRoute(75_000, 55 * 60, [[39.98627, -0.004778], [39.477, -0.376]], stepsSample)
+    );
+
+    const saveRouteMock = vi.fn().mockResolvedValue("route-id-1");
+    const repository = {
+      saveRoute: saveRouteMock,
+      listRoutes: vi.fn(),
+      deleteRoute: vi.fn(),
+    } as any;
+
+    const provider = new OpenRouteServiceAdapter(new OpenRouteServiceHttpClient());
+    const service = RouteService.getInstance({ provider, repository });
+
+    await service.requestRoute({
+      origin: BASE_ORIGIN,
+      destination: BASE_DEST,
+      mobilityType: "vehicle",
+      routeType: "fastest",
+    });
+
+    const savedId = await service.saveRoute({
+      origin: BASE_ORIGIN,
+      destination: BASE_DEST,
+      mobilityType: "vehicle",
+      routeType: "fastest",
+      name: "Castellón-Valencia",
+      userId: "al123456@uji.es",
+    });
+
+    expect(savedId).toBe("route-id-1");
+    expect(saveRouteMock).toHaveBeenCalledWith("al123456@uji.es", {
+      name: "Castellón-Valencia",
+      origin: BASE_ORIGIN,
+      destination: BASE_DEST,
+      mobilityType: "vehicle",
+      mobilityMethod: "vehicle",
+      routeType: "fastest",
+    });
+
+    fetchSpy.mockRestore();
+  });
+
+  test("E6 save route: session missing rejects", async () => {
+    vi.spyOn(UserSession, "loadFromCache").mockReturnValue(null as any);
+    const fetchSpy = vi.spyOn(globalThis as any, "fetch").mockResolvedValue(
+      mockORSResponseForRoute(75_000, 55 * 60, [[39.98627, -0.004778], [39.477, -0.376]], stepsSample)
+    );
+
+    const saveRouteMock = vi.fn();
+    const repository = {
+      saveRoute: saveRouteMock,
+      listRoutes: vi.fn(),
+      deleteRoute: vi.fn(),
+    } as any;
+
+    const provider = new OpenRouteServiceAdapter(new OpenRouteServiceHttpClient());
+    const service = RouteService.getInstance({ provider, repository });
+
+    await service.requestRoute({
+      origin: BASE_ORIGIN,
+      destination: BASE_DEST,
+      mobilityType: "vehicle",
+      routeType: "fastest",
+    });
+
+    await expect(
+      service.saveRoute({
+        origin: BASE_ORIGIN,
+        destination: BASE_DEST,
+        mobilityType: "vehicle",
+        routeType: "fastest",
+        name: "Castellón-Valencia",
+      })
+    ).rejects.toThrow("User session not found. Provide a user id or ensure the session is cached.");
+
+    expect(saveRouteMock).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
   });
 });

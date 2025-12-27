@@ -1,7 +1,7 @@
 import React from 'react'
 import Stepper, { Step } from '../../core/imports/Stepper';
 import { sendEmail } from '../../core/utils/sendEmail';
-import Swal from 'sweetalert2';
+import CustomSwal from '../../core/utils/CustomSwal';
 
 export const Contact = () => {
     const [name, setName] = React.useState('');
@@ -48,11 +48,10 @@ export const Contact = () => {
                     <Step
                         validateNext={() => {
                             if (!name.trim()) {
-                                Swal.fire({
+                                CustomSwal.fire({
                                     title: '⚠️ Field compulsory',
                                     text: 'Please enter your name!',
                                     icon: 'warning',
-                                    confirmButtonColor: '#585233',
                                 }); return false;
                             }
                             return true;
@@ -66,11 +65,10 @@ export const Contact = () => {
                     <Step
                         validateNext={() => {
                             if (!email.trim()) {
-                                Swal.fire({
+                                CustomSwal.fire({
                                     title: '⚠️ Field compulsory',
                                     text: 'Please enter your email!',
                                     icon: 'warning',
-                                    confirmButtonColor: '#585233',
                                 });
                                 return false;
                             }
@@ -85,11 +83,10 @@ export const Contact = () => {
                     <Step
                         validateNext={() => {
                             if (!phone.trim()) {
-                                Swal.fire({
+                                CustomSwal.fire({
                                     title: '⚠️ Field compulsory',
                                     text: 'Please enter your phone number!',
                                     icon: 'warning',
-                                    confirmButtonColor: '#585233',
                                 }); return false;
                             }
                             return true;
@@ -104,11 +101,10 @@ export const Contact = () => {
                         validateNext={() => {
                             if (!text.trim()) {
                                 { {/*si campo vacio*/ } }
-                                Swal.fire({
+                                CustomSwal.fire({
                                     title: '⚠️ Field compulsory',
                                     text: 'Please enter your question!',
                                     icon: 'warning',
-                                    confirmButtonColor: '#585233',
                                 });
                                 return false;
                             }

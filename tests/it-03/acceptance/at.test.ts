@@ -2,13 +2,27 @@ import { describe, test, expect, beforeEach, vi } from "vitest";
 import { RouteService } from "../../../src/domain/service/RouteService";
 import { OpenRouteServiceAdapter } from "../../../src/data/provider/OpenRouteServiceAdapter";
 import { OpenRouteServiceHttpClient } from "../../../src/data/provider/OpenRouteServiceHttpClient";
+import { UserService } from "../../../src/domain/service/UserService";
+import { afterAll } from "vitest";
 
+const BASE_USER = {
+	email: "al123456@uji.es",
+	nickname: "Maria",
+	password: "MiContrasena64",
+};
 
 const resetRouteServiceSingleton = () => {
 	// @ts-ignore
 	RouteService.instance = null;
 };
+const userService = UserService.getInstance();
+let testUserId = "";
 
+const ensureSession = async () => {
+	const session = await userService.logIn(BASE_USER.email, BASE_USER.password);
+	testUserId = session.userId;
+	return session;
+};
 
 const BASE_ORIGIN = "40.620, -0.098"; // Casa / Morella
 const BASE_DEST = "39.933, -0.355"; // Pico Espadán
@@ -43,6 +57,14 @@ const mockORSResponseForRoute = (distanceMeters: number, durationSeconds: number
 		}),
 	} as any;
 };
+
+afterAll(async () => {
+	try {
+		await userService.logOut();
+	} catch {
+		/* ignore */
+	}
+});
 
 describe("HU16 - RouteService acceptance (real provider)", () => {
 	beforeEach(() => {
@@ -135,5 +157,58 @@ describe("HU16 - RouteService acceptance (real provider)", () => {
 				routeType: "shortest",
 			})
 		).rejects.toThrow("InvalidDataException");
+	});
+});
+
+describe("HU19 - Guardar ruta (aceptación)", () => {
+	beforeEach(() => {
+		resetRouteServiceSingleton();
+		vi.restoreAllMocks();
+	});
+
+	test("E1 válido: sesión abierta, ruta calculada y guardada", async () => {
+		await ensureSession();
+		const service = RouteService.getInstance();
+
+		const route = await service.requestRoute({
+			origin: "39.98627, -0.004778",
+			destination: "39.477, -0.376",
+			mobilityType: "vehicle",
+			routeType: "fastest",
+		});
+
+		expect(route).toBeTruthy();
+
+		const savedId = await service.saveRoute({
+			origin: "39.98627, -0.004778",
+			destination: "39.477, -0.376",
+			mobilityType: "vehicle",
+			routeType: "fastest",
+			name: "Castellón-Valencia",
+			userId: "al123456@uji.es",
+		});
+
+		expect(typeof savedId === "string" || savedId instanceof String).toBe(true);
+	});
+
+	test("E3 inválido: sesión cerrada lanza UserNotLoggedInException", async () => {
+		const service = RouteService.getInstance();
+
+		await service.requestRoute({
+			origin: "39.98627, -0.004778",
+			destination: "39.477, -0.376",
+			mobilityType: "vehicle",
+			routeType: "fastest",
+		});
+
+		await expect(
+			service.saveRoute({
+				origin: "39.98627, -0.004778",
+				destination: "39.477, -0.376",
+				mobilityType: "vehicle",
+				routeType: "fastest",
+				name: "Castellón-Valencia",
+			})
+		).rejects.toThrow("User session not found. Provide a user id or ensure the session is cached.");
 	});
 });
