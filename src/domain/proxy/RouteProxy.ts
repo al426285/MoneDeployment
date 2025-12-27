@@ -2,8 +2,11 @@ import { type IRouteProvider } from "../model/IRouteProvider";
 import { Route } from "../model/Route";
 export class RouteProxy implements IRouteProvider {
   private cache = new Map<string, Route>();
+  private realProvider: IRouteProvider;
 
-  constructor(private realProvider: IRouteProvider) {}
+  constructor(realProvider: IRouteProvider) {
+    this.realProvider = realProvider;
+  }
 
   private key(origin: string, dest: string, mob: string, type: string) {
     return `${origin}-${dest}-${mob}-${type}`;
