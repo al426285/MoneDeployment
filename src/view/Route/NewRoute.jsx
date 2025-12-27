@@ -1,6 +1,7 @@
 // filepath: c:\Users\ervig\Documents\Projecto App Maps Mone\ProjectMone\mone\src\components\SearchRoute.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../core/context/AuthContext";
+import CustomSwal from "../../core/utils/CustomSwal";
 import LeafletMap from "../components/LeafletMap";
 import SavedPlacesModal from "../components/SavedPlacesModal";
 import MobilitySelector from "../components/MobilitySelector";
@@ -36,6 +37,7 @@ export default function SearchRoute() {
   const [center, setCenter] = useState(DEFAULT_CENTER); // default
   const [error, setError] = useState("");
   const [hasPreview, setHasPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // nuevo: modal / saved places
   const [showSavedModal, setShowSavedModal] = useState(false);
@@ -206,6 +208,7 @@ export default function SearchRoute() {
       return;
     }
     setError("");
+    setSaving(true);
     try {
       await searchRoute({
         origin: payload.origin,
@@ -216,9 +219,18 @@ export default function SearchRoute() {
         name: trimmedName,
         save: true,
       });
+      await CustomSwal.fire({
+        title: "Route Saved",
+        text: `"${trimmedName}" has been saved successfully.`,
+        icon: "success",
+        confirmButtonText: "Close",
+      });
+      setHasPreview(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to save route";
       setError(message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -237,7 +249,7 @@ export default function SearchRoute() {
 
   const combinedError = error || requestError;
   const primaryButtonLabel = hasPreview
-    ? (loading ? "Saving..." : "Save Route")
+    ? (loading || saving ? "Saving..." : "Save Route")
     : (loading ? "Previewing..." : "Preview Route");
 
   return (
@@ -295,7 +307,7 @@ export default function SearchRoute() {
           </div>
 
           <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.4rem" }}>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
+            <button type="submit" className="btn btn-primary" disabled={loading || saving}>
               {primaryButtonLabel}
             </button>
             <button

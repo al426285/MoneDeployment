@@ -29,7 +29,12 @@ export class OpenRouteServiceHttpClient {
     const profile = PROFILE_MAP[mobilityType?.toLowerCase()] ?? mobilityType;
     const preference = ROUTE_PREFERENCE_MAP[routeType?.toLowerCase()] ?? "fastest";
 
-    return fetch(`/ors/v2/directions/${profile}/geojson`, {
+    const base = typeof window !== "undefined" && window.location?.origin
+      ? ""
+      : process.env.VITE_APP_BASE_URL || "http://localhost:5173";
+    const url = `${base}/ors/v2/directions/${profile}/geojson`;
+
+    return fetch(url, {
       method: "POST",
       headers: {
         "content-type": "application/json",

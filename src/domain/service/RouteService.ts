@@ -95,6 +95,7 @@ export class RouteService {
             origin: options.origin,
             destination: options.destination,
             mobilityType: options.mobilityType,
+            mobilityMethod: options.mobilityType,
             routeType: options.routeType,
         };
         return this.repository.saveRoute(userId, payload);

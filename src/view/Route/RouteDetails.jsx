@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { RouteService } from "../../domain/service/RouteService";
+import CustomSwal from "../../core/utils/CustomSwal";
 import LeafletMap from "../components/LeafletMap";
 
 const DEFAULT_CENTER = [39.99256, -0.067387];
@@ -124,6 +126,78 @@ export default function RouteDetails() {
 
   const steps = Array.isArray(route?.steps) ? route.steps : [];
 
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  const handleSaveRoute = useCallback(
+    async (routeName) => {
+      if (!routePlan) return;
+      const originStr = searchMeta?.origin ?? (markers[0] ? `${markers[0][0]},${markers[0][1]}` : "");
+      const destinationStr = searchMeta?.destination ?? (markers[1] ? `${markers[1][0]},${markers[1][1]}` : "");
+      if (!originStr || !destinationStr) {
+        setSaveError("Missing origin/destination to save this route.");
+        return;
+      }
+      const trimmedName = routeName?.trim();
+      if (!trimmedName) {
+        setSaveError("Route name is required to save.");
+        return;
+      }
+      const nameOrigin = (searchMeta?.label || resolvedOriginLabel || "Route").toString();
+      const nameDestination = (searchMeta?.label || resolvedDestinationLabel || "Route").toString();
+      const finalName = trimmedName || `${nameOrigin} to ${nameDestination}`;
+      setSaving(true);
+      setSaveError(null);
+      try {
+        await RouteService.getInstance().saveRoute({
+          origin: originStr,
+          destination: destinationStr,
+          mobilityType: route?.mobilityType ?? "vehicle",
+          routeType: route?.routeType ?? "fastest",
+          name: finalName,
+          userId: searchMeta?.userId,
+        });
+        await CustomSwal.fire({
+          title: "Saved Route",
+          text: `"${finalName}" was saved successfully.`,
+          icon: "success",
+          confirmButtonText: "Close",
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unable to save route";
+        setSaveError(message);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [routePlan, searchMeta, markers, resolvedDestinationLabel, resolvedOriginLabel, route?.mobilityType, route?.routeType]
+  );
+
+  const handlePromptAndSave = useCallback(async () => {
+    const { value, isConfirmed } = await CustomSwal.fire({
+      title: "Save Route",
+      input: "text",
+      inputLabel: "Route name",
+      inputPlaceholder: "E.g. Home to Work",
+      inputValue: searchMeta?.label ?? "",
+      showCancelButton: true,
+      confirmButtonText: "Save Route",
+      cancelButtonText: "Cancel",
+      preConfirm: (val) => {
+        const trimmed = typeof val === "string" ? val.trim() : "";
+        if (!trimmed) {
+          CustomSwal.showValidationMessage("Route name is required");
+          return false;
+        }
+        return trimmed;
+      },
+    });
+
+    if (!isConfirmed) return;
+    const selectedName = typeof value === "string" ? value.trim() : "";
+    await handleSaveRoute(selectedName || undefined);
+  }, [handleSaveRoute, searchMeta]);
+
   return (
     <section className="place-row">
       <aside className="place-card default-container with-border">
@@ -189,9 +263,22 @@ export default function RouteDetails() {
           </p>
         </div>
 
-        <button type="button" className="btn" style={{ marginTop: "1.5rem" }} onClick={() => navigate("/searchroute")}>
-          Search another route
-        </button>
+        <div style={{ display: "flex", gap: "0.6rem", marginTop: "1.25rem" }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handlePromptAndSave}
+            disabled={saving}
+          >
+            {saving ? "Saving..." : "Save Route"}
+          </button>
+
+          <button type="button" className="btn" onClick={() => navigate("/searchroute")}>
+            Search another route
+          </button>
+        </div>
+
+        {saveError && <p className="error-text" style={{ marginTop: "0.75rem" }}>{saveError}</p>}
       </aside>
 
       <main className="map-panel">
