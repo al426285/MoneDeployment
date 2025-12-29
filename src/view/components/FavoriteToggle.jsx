@@ -5,6 +5,7 @@ export default function FavoriteToggle({ active = false, onToggle = () => {}, si
   return (
     <button
       type="button"
+      className="favorite-toggle"
       aria-pressed={active}
       aria-label={label}
       title={title}
@@ -19,6 +20,7 @@ export default function FavoriteToggle({ active = false, onToggle = () => {}, si
         padding: 4,
         display: "inline-flex",
         alignItems: "center",
+        flexShrink: 0,
       }}
     >
       <span

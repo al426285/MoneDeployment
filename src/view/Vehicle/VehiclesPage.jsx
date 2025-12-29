@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import EditDeleteActions from "../components/EditDeleteActions.jsx";
 import FavoriteToggle from "../components/FavoriteToggle.jsx";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
@@ -59,12 +59,6 @@ export default function VehiclesPage() {
   const bikes = useMemo(() => filteredVehicles.filter((v) => v.type === "Bike"), [filteredVehicles]);
   const walkings = useMemo(() => filteredVehicles.filter((v) => v.type === "Walking"), [filteredVehicles]);
   const regularVehicles = useMemo(() => filteredVehicles.filter((v) => v.type !== "Bike" && v.type !== "Walking"), [filteredVehicles]);
-
-  useEffect(() => {
-    // Log what the page is actually rendering
-    // eslint-disable-next-line no-console
-    console.debug("[vehicles] page render list", vehicles.map((v) => ({ name: v?.name, favorite: v?.favorite, isFavorite: v?.isFavorite })));
-  }, [vehicles]);
 
 
   const getVehicleImage = (vehicle) => {
@@ -537,7 +531,7 @@ export default function VehiclesPage() {
           </div>
 
           <div className="item-card__content">
-            <div className="item-card__title" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+        <div className="item-card__title" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
               <span>{v.name}</span>
               <FavoriteToggle
                 active={Boolean(v.favorite || v.isFavorite)}

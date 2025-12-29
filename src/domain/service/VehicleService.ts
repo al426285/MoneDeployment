@@ -64,27 +64,34 @@ export class VehicleService {
     async getVehicles(ownerId: string | undefined): Promise<Vehicle[]> {
         ownerId = this.resolveUserId(ownerId);
         const cacheKey = VEHICLE_CACHE_KEY(ownerId);
-        const cached = readCache<{ data: Vehicle[] }>(cacheKey)?.data ?? null;
+        const rawCache = readCache<{ data: Vehicle[] }>(cacheKey);
+        console.log("[VehicleService.getVehicles] rawCache:", rawCache);
+        const cached = rawCache?.data ?? null;
+        console.log("[VehicleService.getVehicles] cached (extracted .data):", cached);
         const offline = typeof navigator !== "undefined" && navigator && navigator.onLine === false;
+        console.log("[VehicleService.getVehicles] offline:", offline);
         if (offline) {
             if (cached) return cached;
             throw new Error("OfflineNoCache");
         }
         try {
             const list = await this.vehicleRepository.getVehiclesByOwnerId(ownerId);
+            console.log("[VehicleService.getVehicles] list from repo:", list);
             const normalized = (Array.isArray(list) ? list : []).map((v: any) => ({
                 ...v,
                 favorite: Boolean(v?.favorite || v?.isFavorite),
                 isFavorite: Boolean(v?.favorite || v?.isFavorite),
             }));
-            console.debug("[vehicles] service fetched", normalized.map((v: any) => ({ name: v?.name, favorite: v?.favorite, isFavorite: v?.isFavorite })));
+            console.log("[VehicleService.getVehicles] normalized:", normalized);
             if (Array.isArray(normalized) && normalized.length === 0 && cached && cached.length > 0) {
                 // Avoid wiping cache if an offline/flaky fetch returned empty.
+                console.log("[VehicleService.getVehicles] returning cached (empty fetch fallback)");
                 return cached;
             }
             writeCache(cacheKey, normalized);
             return normalized;
         } catch (err) {
+            console.error("[VehicleService.getVehicles] error:", err);
             if (cached) return cached; // offline fallback
             throw err;
         }
@@ -182,7 +189,12 @@ export class VehicleService {
         if (offline) return; // avoid overwriting cache with empty offline reads
         try {
             const list = await this.vehicleRepository.getVehiclesByOwnerId(ownerId);
-            writeCache(VEHICLE_CACHE_KEY(ownerId), list);
+            const normalized = (Array.isArray(list) ? list : []).map((v: any) => ({
+                ...v,
+                favorite: Boolean(v?.favorite || v?.isFavorite),
+                isFavorite: Boolean(v?.favorite || v?.isFavorite),
+            }));
+            writeCache(VEHICLE_CACHE_KEY(ownerId), normalized);
         } catch {
             /* best-effort cache refresh */
         }

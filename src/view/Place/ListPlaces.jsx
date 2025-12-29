@@ -135,7 +135,7 @@ export default function ListPlaces({ onAddPlace, onEditPlace, className = "" }) 
         {cardIcon}
       </div>
       <div className="item-card__content">
-        <div className="item-card__title" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+          <div className="item-card__title" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
           <span>{place?.name || "Unnamed place"}</span>
           <FavoriteToggle
             active={Boolean(place?.favorite || place?.isFavorite)}

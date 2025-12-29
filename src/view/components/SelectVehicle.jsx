@@ -28,8 +28,6 @@ const normalizeOptions = (list, mode) => {
     .filter(Boolean)
     .sort((a, b) => Number(Boolean(b?.favorite || b?.isFavorite)) - Number(Boolean(a?.favorite || a?.isFavorite)));
 
-  console.debug("[select-vehicle] normalize", cleaned.map((o) => ({ value: getOptionValue(o), favorite: Boolean(o?.favorite || o?.isFavorite) })));
-
   const defaultOpt = getDefaultOption(mode);
   const defaultValue = getOptionValue(defaultOpt);
   const hasDefault = cleaned.some((opt) => getOptionValue(opt) === defaultValue);
@@ -59,7 +57,6 @@ export default function SelectVehicle({
         const getter = fetchRef.current ?? (userViewmodel && userViewmodel.getVehicles ? userViewmodel.getVehicles : null);
         if (typeof getter === "function") {
           const data = await getter(mode);
-          console.debug("[select-vehicle] fetched", { mode, data: Array.isArray(data) ? data.map((d) => ({ value: getOptionValue(d), favorite: Boolean(d?.favorite || d?.isFavorite) })) : data });
           if (!canceled) {
             const normalized = normalizeOptions(data, mode);
             setOptions(normalized);

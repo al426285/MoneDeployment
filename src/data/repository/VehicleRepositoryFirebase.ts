@@ -73,39 +73,45 @@ export class VehicleRepositoryFirebase implements VehicleRepositoryInterface {
             const baseConsumption: any = (data as any).consumption;
             const amount = typeof baseConsumption === "object" ? (baseConsumption as any).amount : baseConsumption;
             const consumption = amount !== undefined ? amount : (baseConsumption?.amount ?? undefined);
-            const favorite = Boolean((data as any).favorite);
+            const favorite = Boolean(data.favorite);
 
-            console.debug("[repo] vehicle doc", { id: d.id, name: data.name, type: data.type, favorite: data.favorite });
-
-            const base = (() => {
-                switch (type.toLowerCase()) {
-                    case "bike":
-                        return VehicleFactory.createVehicle("bike", data.name, undefined, consumption, favorite);
-
-                    case "walking":
-                        return VehicleFactory.createVehicle("walking", data.name, undefined, consumption, favorite);
-
-                    case "fuelcar":
-                        return VehicleFactory.createVehicle("fuelCar", data.name, normalizedFuel, consumption, favorite);
-
-                    case "electriccar":
-                        return VehicleFactory.createVehicle("electricCar", data.name, normalizedFuel, consumption, favorite);
-
-                    default:
-                        console.error("Unknown vehicle type in Firestore:", data);
-                        return null;
+            let base: Vehicle | null = null;
+            switch (type.toLowerCase()) {
+                case "bike":
+                    base = VehicleFactory.createVehicle("bike", data.name, undefined, consumption, favorite);
+                    break;
+                case "walking":
+                    base = VehicleFactory.createVehicle("walking", data.name, undefined, consumption, favorite);
+                    break;
+                case "fuelcar": {
+                    // FuelCar requires gasoline or diesel; default to gasoline if invalid
+                    const fuelForCar = (normalizedFuel === "gasoline" || normalizedFuel === "diesel") ? normalizedFuel : "gasoline";
+                    base = VehicleFactory.createVehicle("fuelCar", data.name, fuelForCar, consumption, favorite);
+                    break;
                 }
-            })();
+                case "electriccar":
+                    base = VehicleFactory.createVehicle("electricCar", data.name, "electric", consumption, favorite);
+                    break;
+                default:
+                    console.error("Unknown vehicle type in Firestore:", data);
+                    return null;
+            }
 
             if (!base) return null;
 
-            // Return a plain object to avoid any class-level defaults overriding favorite
-            return {
-                ...base,
-                favorite,
+            // Build plain object manually to ensure favorite flags are preserved
+            const vehicle = {
+                name: base.name,
+                type: (base as any).type,
+                fuelType: base.fuelType,
+                consumption: base.consumption,
+                favorite: favorite,
                 isFavorite: favorite,
-            } as any;
-        }).filter(v => v !== null);
+                mostrarInfo: base.mostrarInfo.bind(base),
+            };
+
+            return vehicle;
+        }).filter(v => v !== null) as Vehicle[];
     }
 
 

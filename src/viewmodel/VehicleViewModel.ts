@@ -8,7 +8,6 @@ export function VehicleViewModel() {
     const vehicleService = VehicleService.getInstance(new VehicleRepositoryFirebase());
 
     const requestIdRef = { current: 0 } as { current: number };
-    const DEBUG_FAVORITES = true;
 
     const sortByFavorite = (list: Vehicle[]): Vehicle[] =>
         [...list].sort(
@@ -37,14 +36,16 @@ export function VehicleViewModel() {
             setError(null);
 
             const requestId = ++requestIdRef.current;
-            if (DEBUG_FAVORITES) console.debug("[vehicles] load start", { requestId });
-
             const ownerid = getCurrentUid(); //si no hay sesión, undefined
             const list = await vehicleService.getVehicles(ownerid);
+            const normalized = list.map((v) => ({
+                ...v,
+                favorite: Boolean((v as any)?.favorite || (v as any)?.isFavorite),
+                isFavorite: Boolean((v as any)?.favorite || (v as any)?.isFavorite),
+            }));
             // Drop stale responses: only apply the latest fetch
             if (requestId === requestIdRef.current) {
-                if (DEBUG_FAVORITES) console.debug("[vehicles] load apply", { requestId, count: list.length, favorites: list.map((v) => ({ name: v.name, favorite: (v as any)?.favorite, isFavorite: (v as any)?.isFavorite })) });
-                setVehicles(sortByFavorite(list));
+                setVehicles(sortByFavorite(normalized));
             }
         } catch (err: any) {
             setError(err.message ?? "Error loading vehicles");
@@ -116,19 +117,25 @@ export function VehicleViewModel() {
         // Optimistic update to keep UI responsive.
         setVehicles((prev) => {
             const next = sortByFavorite(prev.map((v) => (v.name === vehicleId ? { ...v, favorite, isFavorite: favorite } : v)));
-            if (DEBUG_FAVORITES) console.debug("[vehicles] optimistic favorite", { vehicleId, favorite, next: next.map((v) => ({ name: v.name, favorite: (v as any)?.favorite, isFavorite: (v as any)?.isFavorite })) });
             return next;
         });
 
         try {
             await vehicleService.setFavorite(ownerid, vehicleId, favorite);
+            // Refresh from source to ensure cache is updated and view reflects persisted state
+            const refreshed = await vehicleService.getVehicles(ownerid);
+            const normalized = refreshed.map((v) => ({
+                ...v,
+                favorite: Boolean((v as any)?.favorite || (v as any)?.isFavorite),
+                isFavorite: Boolean((v as any)?.favorite || (v as any)?.isFavorite),
+            }));
+            setVehicles(sortByFavorite(normalized));
         } catch (err: any) {
             // Rollback on error
             setVehicles((prev) =>
                 sortByFavorite(prev.map((v) => (v.name === vehicleId ? { ...v, favorite: !favorite, isFavorite: !favorite } : v)))
             );
             setError(err.message ?? "Error updating favorite");
-            if (DEBUG_FAVORITES) console.warn("[vehicles] favorite update failed", { vehicleId, favorite, error: err });
         }
     };
 
