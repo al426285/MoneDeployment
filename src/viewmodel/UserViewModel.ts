@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { UserService } from "../domain/service/UserService";
 import { UserSession } from "../domain/session/UserSession";
+import { UserPreferencesService, type UserPreferences } from "../domain/service/UserPreferencesService";
 
 // helper para obtener la instancia cuando la necesitamos (no cacheada a nivel módulo)
 const getSvc = () => UserService.getInstance();
+const preferencesService = new UserPreferencesService();
 
 export const useUserViewModel = (onNavigate: (path: string) => void) => {
   const [email, setEmail] = useState<string>("");
@@ -310,9 +312,30 @@ export const updateUserPassword = async (currentPassword: string, newPassword: s
   }
 };
 
+export const getUserMeasurementPreferences = async (): Promise<UserPreferences> => {
+  const uid = getCurrentUid();
+  if (!uid) {
+    throw new Error("User not authenticated");
+  }
+  return preferencesService.get(uid);
+};
+
+export const saveUserMeasurementPreferences = async (
+  preferences: Partial<UserPreferences>
+): Promise<UserPreferences> => {
+  const uid = getCurrentUid();
+  if (!uid) {
+    throw new Error("User not authenticated");
+  }
+  await preferencesService.save(uid, preferences);
+  return preferencesService.get(uid);
+};
+
 const userViewmodel = {
   getUser,
   updateAccountInfo,
+  getUserMeasurementPreferences,
+  saveUserMeasurementPreferences,
 };
 
 export default userViewmodel;
