@@ -47,6 +47,19 @@ export class UserPreferencesService {
 
   async save(userId: string, preferences: Partial<UserPreferences>): Promise<void> {
     if (!userId) throw new Error("User id is required");
+    const hasInvalidDistance =
+      preferences.distanceUnit !== undefined && !isDistanceUnit(preferences.distanceUnit);
+    const hasInvalidCombustion =
+      preferences.combustionConsumptionUnit !== undefined &&
+      !isCombustionConsumptionUnit(preferences.combustionConsumptionUnit);
+    const hasInvalidElectric =
+      preferences.electricConsumptionUnit !== undefined &&
+      !isElectricConsumptionUnit(preferences.electricConsumptionUnit);
+
+    if (hasInvalidDistance || hasInvalidCombustion || hasInvalidElectric) {
+      throw new Error("InvalidDataException");
+    }
+
     const current = await this.get(userId);
     const payload: UserPreferences = {
       distanceUnit: isDistanceUnit(preferences.distanceUnit)
