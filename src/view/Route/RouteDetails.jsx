@@ -268,6 +268,7 @@ export default function RouteDetails() {
         id: `${mobility}-${vehicle.name}-${index}`,
         name: vehicle.name,
         mobility,
+        favorite: Boolean(vehicle?.favorite),
         ref: vehicle,
       };
     });
@@ -301,6 +302,7 @@ export default function RouteDetails() {
         .map((option) => ({
           id: option.id,
           name: option.name,
+          favorite: option.favorite,
           meta: formatVehicleConsumptionDisplay(option.ref) ?? undefined,
         }));
     },

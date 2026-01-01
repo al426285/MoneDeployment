@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useRef } from "react";
 import EditDeleteActions from "../components/EditDeleteActions.jsx";
+import FavoriteToggle from "../components/FavoriteToggle.jsx";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
 import CustomSwal from "../../core/utils/CustomSwal.js";
 import { isValidVehicleName } from "../../core/utils/validators";
@@ -12,21 +13,20 @@ export default function VehiclesPage() {
     addVehicle,
     deleteVehicle,
     updateVehicle,
+    setFavorite,
     getFuelUnitsPreference,
     getElectricUnitsPreference,
   } = VehicleViewModel();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [editingVehicle, setEditingVehicle] = useState(null);
-  const [editForm, setEditForm] = useState({ name: "", fuelType: "", consumption: "" });
 
   // Estado inmediato y persistente del formulario (guardar contenido formulario para mostrar al hace back)
   const wizardFormStateRef = useRef({
     name: "",
     type: "",
     units: "",
-    fuelType: null,
-    consumption: null,
+    fuelType: "",
+    consumption: "",
   });
 
   //Preferencias de unidades, deberia de venir del viewmodel
@@ -40,19 +40,21 @@ export default function VehiclesPage() {
     "M12 2a1 1 0 0 1 1 1v8h8a1 1 0 1 1 0 2h-8v8a1 1 0 1 1-2 0v-8H3a1 1 0 1 1 0-2h8V3a1 1 0 0 1 1-1z";
 
   const filteredVehicles = useMemo(() => {
+    const sorted = [...vehicles].sort(
+      (a, b) => Number(Boolean(b?.favorite || b?.isFavorite)) - Number(Boolean(a?.favorite || a?.isFavorite))
+    );
     const normalized = searchTerm.trim().toLowerCase();
-    if (!normalized) return vehicles;
-    return vehicles.filter((vehicle) => {
+    if (!normalized) return sorted;
+    return sorted.filter((vehicle) => {
       const nameMatch = vehicle.name?.toLowerCase().includes(normalized);
       const typeMatch = vehicle.type?.toLowerCase().includes(normalized);
-      const fuelMatch = vehicle.fuelType
-        ? vehicle.fuelType.toLowerCase().includes(normalized)
-        : false;
+      const fuelMatch = vehicle.fuelType ? vehicle.fuelType.toLowerCase().includes(normalized) : false;
       return nameMatch || typeMatch || fuelMatch;
     });
   }, [vehicles, searchTerm]);
 
   // separamos por por tipo y vemos que cumplen con el filtro
+  const favorites = useMemo(() => filteredVehicles.filter((v) => Boolean(v.favorite || v.isFavorite)), [filteredVehicles]);
   const bikes = useMemo(() => filteredVehicles.filter((v) => v.type === "Bike"), [filteredVehicles]);
   const walkings = useMemo(() => filteredVehicles.filter((v) => v.type === "Walking"), [filteredVehicles]);
   const regularVehicles = useMemo(() => filteredVehicles.filter((v) => v.type !== "Bike" && v.type !== "Walking"), [filteredVehicles]);
@@ -73,43 +75,125 @@ export default function VehiclesPage() {
     const customClass = {
       confirmButton: "my-confirm-btn",
       cancelButton: "my-cancel-btn",
-      denyButton: "my-back-btn",
       input: "my-input",
       actions: "mone-swal-actions",
     };
 
-    // PASO 1: Nombre y Tipo (walking, bicycle, vehicle)
-    const step1 = await CustomSwal.fire({
+    const step = await CustomSwal.fire({
       title: "Add Mobility Method",
       html: `
-        <div style="text-align: left;">
-          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Name</label>
-          <input type="text" id="vehicleName" class="my-input" value="${wizardFormStateRef.current.name}" style="width: 100%; box-sizing: border-box;" />
-          
-          <label style="display: block; margin-top: 1rem; margin-bottom: 0.5rem; font-weight: 600;">Type</label>
-          <select id="vehicleType" class="my-select" style="width: 100%; padding: 0.5rem; border: 1px solid #585233; border-radius: 4px;">
+        <div class="wizard-form">
+          <input
+            type="text"
+            id="addName"
+            class="my-input"
+            value="${wizardFormStateRef.current.name}"
+            placeholder="Name"
+          />
+
+          <select id="addType" class="my-select" style="margin-top: 1rem;">
             <option value="" disabled ${!wizardFormStateRef.current.type ? "selected" : ""}>Select type</option>
             <option value="bike" ${wizardFormStateRef.current.type === "bike" ? "selected" : ""}>Bike</option>
             <option value="walking" ${wizardFormStateRef.current.type === "walking" ? "selected" : ""}>Walking</option>
             <option value="car" ${wizardFormStateRef.current.type === "car" ? "selected" : ""}>Vehicle</option>
           </select>
+
+          <div id="carFields" style="display: ${wizardFormStateRef.current.type === "car" ? "block" : "none"}; margin-top: 1rem;">
+            <select id="addFuelType" class="my-select">
+              <option value="" disabled ${!wizardFormStateRef.current.fuelType ? "selected" : ""}>Select fuel type</option>
+              <option value="electric" ${wizardFormStateRef.current.fuelType === "electric" ? "selected" : ""}>Electric</option>
+              <option value="gasoline" ${wizardFormStateRef.current.fuelType === "gasoline" ? "selected" : ""}>Gasoline</option>
+              <option value="diesel" ${wizardFormStateRef.current.fuelType === "diesel" ? "selected" : ""}>Diesel</option>
+            </select>
+
+            <select id="addUnits" class="my-select" style="margin-top: 1rem;"></select>
+          </div>
+
+          <div class="wizard-form__input-group" style="margin-top: 1rem;">
+            <input
+              type="number"
+              id="addConsumption"
+              class="my-input"
+              value="${wizardFormStateRef.current.consumption}"
+              min="0"
+              step="0.1"
+              placeholder="Consumption"
+            />
+            <span id="consumptionUnit" style="margin-left: 0.5rem;"></span>
+          </div>
         </div>
       `,
       background: "#CCD5B9",
       color: "#585233",
       customClass,
       showCancelButton: true,
-      confirmButtonText: "Next",
+      confirmButtonText: "Save",
       cancelButtonText: "Cancel",
       focusConfirm: false,
       didOpen: () => {
-        const nameInput = CustomSwal.getPopup().querySelector('#vehicleName');
-        nameInput?.focus();
+        const popup = CustomSwal.getPopup();
+        const typeSelect = popup.querySelector('#addType');
+        const fuelSelect = popup.querySelector('#addFuelType');
+        const unitsSelect = popup.querySelector('#addUnits');
+        const consumptionInput = popup.querySelector('#addConsumption');
+        const consumptionUnit = popup.querySelector('#consumptionUnit');
+        const carFields = popup.querySelector('#carFields');
+
+        const updateUnitsOptions = () => {
+          const fuelType = fuelSelect.value;
+          const options = fuelType === 'electric'
+            ? ['kWh/100km', 'km/kWh']
+            : ['L/100km', 'km/l'];
+          unitsSelect.innerHTML = options
+            .map((unit) => `<option value="${unit}" ${wizardFormStateRef.current.units === unit ? 'selected' : ''}>${unit}</option>`)
+            .join('');
+        };
+
+        const updateConsumptionCopy = () => {
+          const typeValue = typeSelect.value;
+          if (typeValue === 'bike' || typeValue === 'walking') {
+            consumptionInput.placeholder = 'Average calories consumption (kcal/min)';
+            consumptionInput.setAttribute('aria-label', 'Average calories consumption (kcal/min)');
+            consumptionUnit.textContent = 'kcal/min';
+          } else if (typeValue === 'car') {
+            consumptionInput.placeholder = 'Consumption';
+            consumptionInput.setAttribute('aria-label', 'Consumption');
+            consumptionUnit.textContent = unitsSelect.value || '';
+          } else {
+            consumptionInput.placeholder = 'Consumption';
+            consumptionInput.setAttribute('aria-label', 'Consumption');
+            consumptionUnit.textContent = '';
+          }
+        };
+
+        const handleTypeChange = () => {
+          const typeValue = typeSelect.value;
+          carFields.style.display = typeValue === 'car' ? 'block' : 'none';
+          updateConsumptionCopy();
+        };
+
+        const handleFuelChange = () => {
+          updateUnitsOptions();
+          updateConsumptionCopy();
+        };
+
+        // initialize units select content before maybe hidden
+        updateUnitsOptions();
+        updateConsumptionCopy();
+
+        typeSelect.addEventListener('change', handleTypeChange);
+        fuelSelect.addEventListener('change', handleFuelChange);
+        unitsSelect.addEventListener('change', updateConsumptionCopy);
+        popup.querySelector('#addName')?.focus();
       },
       preConfirm: () => {
-        const name = CustomSwal.getPopup().querySelector('#vehicleName')?.value || "";
-        const type = CustomSwal.getPopup().querySelector('#vehicleType')?.value || "";
-        
+        const popup = CustomSwal.getPopup();
+        const name = popup.querySelector('#addName')?.value.trim() || "";
+        const type = popup.querySelector('#addType')?.value || "";
+        const fuelType = popup.querySelector('#addFuelType')?.value || "";
+        const units = popup.querySelector('#addUnits')?.value || "";
+        const consumptionValue = parseFloat(popup.querySelector('#addConsumption')?.value || "0");
+
         if (!name) {
           CustomSwal.showValidationMessage("Name is required");
           return false;
@@ -122,180 +206,53 @@ export default function VehiclesPage() {
           CustomSwal.showValidationMessage("Type is required");
           return false;
         }
-        return { name, type };
+        if (!consumptionValue || consumptionValue <= 0) {
+          CustomSwal.showValidationMessage("Consumption must be greater than 0");
+          return false;
+        }
+
+        if (type === "car") {
+          if (!fuelType) {
+            CustomSwal.showValidationMessage("Fuel type is required for vehicles");
+            return false;
+          }
+          if (!units) {
+            CustomSwal.showValidationMessage("Measurement unit is required");
+            return false;
+          }
+        }
+
+        return { name, type, fuelType, units, consumptionValue };
       },
     });
-    if (!step1.value) {
-      wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
+
+    if (!step.value) {
+      wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: "", consumption: "" };
       return;
     }
 
-    wizardFormStateRef.current.name = step1.value.name;
-    wizardFormStateRef.current.type = step1.value.type;
+    wizardFormStateRef.current = {
+      name: step.value.name,
+      type: step.value.type,
+      units: step.value.units,
+      fuelType: step.value.fuelType,
+      consumption: step.value.consumptionValue,
+    };
 
-    // PASO 2: Características según tipo
-    if (step1.value.type === "bike" || step1.value.type === "walking") {
-      const step2 = await CustomSwal.fire({
-        title: `Configure ${capitalize(step1.value.type)}`,
-        html: `
-          <div style="text-align: left;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Average calories consumption (kcal/min)</label>
-            <input type="number" id="consumption" class="my-input" value="${wizardFormStateRef.current.consumption ?? ""}" min="0" step="0.1" style="width: 100%; box-sizing: border-box;" />
-          </div>
-        `,
-        background: "#CCD5B9",
-        color: "#585233",
-        customClass,
-        showDenyButton: true,
-        showCancelButton: true,
-        confirmButtonText: "Save",
-        denyButtonText: "Back",
-        cancelButtonText: "Cancel",
-        focusConfirm: false,
-        didOpen: () => {
-          CustomSwal.getPopup().querySelector('#consumption')?.focus();
-        },
-        preConfirm: () => {
-          const consumption = parseFloat(CustomSwal.getPopup().querySelector('#consumption')?.value || "0");
-          if (!consumption || consumption <= 0) {
-            CustomSwal.showValidationMessage("Consumption must be greater than 0");
-            return false;
-          }
-          return consumption;
-        },
-      });
-
-      if (step2.isDenied) {
-        const currentConsumption = parseFloat(CustomSwal.getPopup().querySelector('#consumption')?.value || "0");
-        wizardFormStateRef.current.consumption = currentConsumption || wizardFormStateRef.current.consumption;
-        return handleAddClick();
-      }
-
-      if (!step2.value) {
-        wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
-        return;
-      }
-
+    if (step.value.type === "bike" || step.value.type === "walking") {
+      await addVehicle(step.value.type, step.value.name, "", null, step.value.consumptionValue);
+    } else if (step.value.type === "car") {
+      const derivedType = step.value.fuelType === "electric" ? "electricCar" : "fuelCar";
       await addVehicle(
-        step1.value.type,
-        step1.value.name,
-        "",
-        null,
-        step2.value
+        derivedType,
+        step.value.name,
+        step.value.units,
+        step.value.fuelType,
+        step.value.consumptionValue
       );
-
-      wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
-      return;
     }
 
-    if (step1.value.type === "car") {
-      const fuelResult = await CustomSwal.fire({
-        title: "Fuel Type",
-        html: `
-          <select id="fuelType" class="my-select" style="width: 100%; padding: 0.5rem; border: 1px solid #585233; border-radius: 4px;">
-            <option value="" disabled ${!wizardFormStateRef.current.fuelType && wizardFormStateRef.current.type !== "electricCar" && wizardFormStateRef.current.type !== "fuelCar" ? "selected" : ""}>Select type</option>
-            <option value="electric" ${wizardFormStateRef.current.fuelType === "electric" ? "selected" : ""}>Electric</option>
-            <option value="gasoline" ${wizardFormStateRef.current.fuelType === "gasoline" ? "selected" : ""}>Gasoline</option>
-            <option value="diesel" ${wizardFormStateRef.current.fuelType === "diesel" ? "selected" : ""}>Diesel</option>
-          </select>
-        `,
-        background: "#CCD5B9",
-        color: "#585233",
-        customClass,
-        showCancelButton: true,
-        confirmButtonText: "Next",
-        cancelButtonText: "Cancel",
-        focusConfirm: false,
-        preConfirm: () => {
-          const fuel = CustomSwal.getPopup().querySelector('#fuelType')?.value;
-          if (!fuel) {
-            CustomSwal.showValidationMessage("Select type");
-            return false;
-          }
-          return fuel;
-        },
-      });
-
-      if (fuelResult.isDismissed) {
-        wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
-        return;
-      }
-
-      const isElectric = fuelResult.value === "electric";
-
-      const unitsResult = await CustomSwal.fire({
-        title: "Measurement units",
-        html: `
-          <div style="text-align: left;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Select unit</label>
-            <select id="units" class="my-select" style="width: 100%; padding: 0.5rem; border: 1px solid #585233; border-radius: 4px; margin-bottom: 1rem;">
-              ${isElectric ? `
-                <option value="kWh/100km" ${wizardFormStateRef.current.units === "kWh/100km" || !wizardFormStateRef.current.units ? "selected" : ""}>kWh/100km</option>
-                <option value="km/kWh" ${wizardFormStateRef.current.units === "km/kWh" ? "selected" : ""}>km/kWh</option>
-              ` : `
-                <option value="L/100km" ${wizardFormStateRef.current.units === "L/100km" || !wizardFormStateRef.current.units ? "selected" : ""}>L/100km</option>
-                <option value="km/l" ${wizardFormStateRef.current.units === "km/l" ? "selected" : ""}>km/l</option>
-              `}
-            </select>
-            
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Consumption</label>
-            <input type="number" id="consumption" class="my-input" value="${wizardFormStateRef.current.consumption ?? ""}" min="0" step="0.1" style="width: 100%; box-sizing: border-box;" />
-          </div>
-        `,
-        background: "#CCD5B9",
-        color: "#585233",
-        customClass,
-        showDenyButton: true,
-        showCancelButton: true,
-        confirmButtonText: "Save",
-        denyButtonText: "Back",
-        cancelButtonText: "Cancel",
-        focusConfirm: false,
-        didOpen: () => {
-          CustomSwal.getPopup().querySelector('#consumption')?.focus();
-        },
-        preConfirm: () => {
-          const units = CustomSwal.getPopup().querySelector('#units')?.value;
-          const consumption = parseFloat(CustomSwal.getPopup().querySelector('#consumption')?.value || "0");
-
-          if (!units) {
-            CustomSwal.showValidationMessage("Select unit");
-            return false;
-          }
-          if (!consumption || consumption <= 0) {
-            CustomSwal.showValidationMessage("Consumption must be greater than 0");
-            return false;
-          }
-          return { units, consumption };
-        },
-      });
-
-      if (unitsResult.isDenied) {
-        const currentUnits = CustomSwal.getPopup().querySelector('#units')?.value;
-        const currentConsumption = parseFloat(CustomSwal.getPopup().querySelector('#consumption')?.value || "0");
-        wizardFormStateRef.current.units = currentUnits || wizardFormStateRef.current.units;
-        wizardFormStateRef.current.consumption = currentConsumption || wizardFormStateRef.current.consumption;
-        return handleAddClick();
-      }
-
-      if (!unitsResult.value) {
-        wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
-        return;
-      }
-
-      wizardFormStateRef.current.fuelType = fuelResult.value;
-      wizardFormStateRef.current.type = isElectric ? "electricCar" : "fuelCar";
-
-      await addVehicle(
-        wizardFormStateRef.current.type,
-        wizardFormStateRef.current.name,
-        unitsResult.value.units,
-        wizardFormStateRef.current.fuelType,
-        unitsResult.value.consumption
-      );
-
-      wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
-    }
+    wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: "", consumption: "" };
   };
 
   const handleDelete = async (id) => {
@@ -328,38 +285,112 @@ export default function VehiclesPage() {
     }
   };
 
-  const handleEdit = (vehicleName) => {
-    const vehicle = vehicles.find(v => v.name === vehicleName);
+  const handleEdit = async (vehicleName) => {
+    const vehicle = vehicles.find((v) => v.name === vehicleName);
     if (!vehicle) return;
-    
+
     const normalized = normalizeConsumptionShape(vehicle.consumption);
-    setEditingVehicle(vehicle);
-    setEditForm({
-      name: vehicle.name || "",
-      fuelType: vehicle.fuelType || "",
-      consumption: normalized?.amount?.toString() || ""
-    });
-  };
+    const currentConsumption = normalized?.amount ?? "";
+    const consumptionUnit = normalized?.unit || (vehicle.type === "Bike" || vehicle.type === "Walking" ? "kcal/min" : "");
+    const isBikeOrWalking = vehicle.type === "Bike" || vehicle.type === "Walking";
+    const isFuelCar = vehicle.type === "FuelCar";
+    const consumptionPlaceholder = isBikeOrWalking ? "Average calories consumption" : "Consumption";
 
-  const handleCancelEdit = () => {
-    setEditingVehicle(null);
-    setEditForm({ name: "", fuelType: "", consumption: "" });
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingVehicle) return;
-    
-    const updates = {
-      name: editForm.name,
-      fuelType: editForm.fuelType || editingVehicle.fuelType,
-      consumption: {
-        amount: parseFloat(editForm.consumption) || 0,
-        unit: editingVehicle.consumption?.unit || "kcal/min"
-      }
+    const customClass = {
+      confirmButton: "my-confirm-btn",
+      cancelButton: "my-cancel-btn",
+      input: "my-input",
+      actions: "mone-swal-actions",
     };
 
-    await updateVehicle(editingVehicle.name, updates);
-    handleCancelEdit();
+    const result = await CustomSwal.fire({
+      title: `Edit ${vehicle.name}`,
+      html: `
+        <div class="wizard-form">
+          <input
+            type="text"
+            id="editName"
+            class="my-input"
+            value="${vehicle.name || ""}"
+            placeholder="${capitalize(vehicle.type)} name"
+          />
+          ${isFuelCar ? `
+            <select id="editFuelType" class="my-select" style="margin-top: 1rem;">
+              <option value="gasoline" ${vehicle.fuelType === "gasoline" ? "selected" : ""}>Gasoline</option>
+              <option value="diesel" ${vehicle.fuelType === "diesel" ? "selected" : ""}>Diesel</option>
+            </select>
+          ` : ""}
+          <div class="wizard-form__input-group" style="margin-top: 1rem;">
+            <input
+              type="number"
+              id="editConsumption"
+              class="my-input"
+              value="${currentConsumption}"
+              placeholder="${consumptionPlaceholder}"
+              min="0"
+              step="0.1"
+            />
+            <span id="editConsumptionUnit" style="margin-left: 0.5rem;">${consumptionUnit}</span>
+          </div>
+        </div>
+      `,
+      background: "#CCD5B9",
+      color: "#585233",
+      customClass,
+      showCancelButton: true,
+      confirmButtonText: "Save",
+      cancelButtonText: "Cancel",
+      focusConfirm: false,
+      didOpen: () => {
+        CustomSwal.getPopup().querySelector('#editName')?.focus();
+      },
+      preConfirm: () => {
+        const popup = CustomSwal.getPopup();
+        const name = popup.querySelector('#editName')?.value.trim() || "";
+        const fuelType = isFuelCar ? popup.querySelector('#editFuelType')?.value : vehicle.fuelType;
+        const consumptionValue = parseFloat(popup.querySelector('#editConsumption')?.value || "0");
+
+        if (!name) {
+          CustomSwal.showValidationMessage("Name is required");
+          return false;
+        }
+        if (!isValidVehicleName(name)) {
+          CustomSwal.showValidationMessage("Invalid name format");
+          return false;
+        }
+        if (!consumptionValue || consumptionValue <= 0) {
+          CustomSwal.showValidationMessage("Consumption must be greater than 0");
+          return false;
+        }
+
+        if (isFuelCar && !fuelType) {
+          CustomSwal.showValidationMessage("Fuel type is required");
+          return false;
+        }
+
+        return { name, fuelType, consumptionValue };
+      },
+    });
+
+    if (!result.value) return;
+
+    const wasFavorite = Boolean(vehicle.favorite || vehicle.isFavorite);
+
+    await updateVehicle(vehicle.name, {
+      name: result.value.name,
+      fuelType: result.value.fuelType || vehicle.fuelType,
+      consumption: {
+        amount: result.value.consumptionValue,
+        unit: consumptionUnit || vehicle.consumption?.unit || "kcal/min",
+      },
+      favorite: wasFavorite,
+      isFavorite: wasFavorite,
+    });
+
+    if (wasFavorite) {
+      const targetName = result.value.name || vehicle.name;
+      setFavorite(targetName, true);
+    }
   };
 
   const capitalize = (str) =>
@@ -442,93 +473,26 @@ export default function VehiclesPage() {
   };
 
 
-  const renderList = (list) => {
+  const renderList = (list, emptyMessage = "No items found") => {
     if (loading) return <li className="item-card item-card--empty">Loading...</li>;
-    if (!list.length) return <li className="item-card item-card--empty">No items found</li>;
+    if (!list.length) return <li className="item-card item-card--empty">{emptyMessage}</li>;
 
     return list.map((v) => {
-      const isEditing = editingVehicle?.name === v.name;
-      
-      if (isEditing) {
-        return (
-          <li key={v.id} className="item-card item-card--editing">
-            <div className="edit-form">
-              <h3 className="edit-form__title">Edit {capitalize(v.type)}</h3>
-              
-              <div className="edit-form__field">
-                <label className="edit-form__label">{capitalize(v.type)} Name</label>
-                <input
-                  type="text"
-                  className="edit-form__input"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                  placeholder="Enter name"
-                />
-              </div>
-
-              {v.type === "FuelCar" && (
-                <div className="edit-form__field">
-                  <label className="edit-form__label">Fuel Type</label>
-                  <select
-                    className="edit-form__select"
-                    value={editForm.fuelType}
-                    onChange={(e) => setEditForm({...editForm, fuelType: e.target.value})}
-                  >
-                    <option value="gasoline">Gasoline</option>
-                    <option value="diesel">Diesel</option>
-                  </select>
-                </div>
-              )}
-
-              <div className="edit-form__field">
-                <label className="edit-form__label">
-                  Average {v.type === "Bike" || v.type === "Walking" ? "calories" : ""} consumption
-                </label>
-                <div className="edit-form__input-group">
-                  <input
-                    type="number"
-                    className="edit-form__input"
-                    value={editForm.consumption}
-                    onChange={(e) => setEditForm({...editForm, consumption: e.target.value})}
-                    placeholder="Enter consumption"
-                    step="0.1"
-                    min="0"
-                  />
-                  <span className="edit-form__unit">
-                    {v.consumption?.unit || "kcal/min"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="edit-form__actions">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleCancelEdit}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSaveEdit}
-                >
-                  Save changes
-                </button>
-              </div>
-            </div>
-          </li>
-        );
-      }
-
       return (
-        <li key={v.id} className="item-card">
+        <li key={v.id || v.name} className="item-card">
           <div className="item-card__icon" aria-hidden>
             <img src={getVehicleImage(v)} className="item-icon" alt="vehicle" />
           </div>
 
           <div className="item-card__content">
-            <div className="item-card__title">{v.name}</div>
+        <div className="item-card__title" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+              <span>{v.name}</span>
+              <FavoriteToggle
+                active={Boolean(v.favorite || v.isFavorite)}
+                onToggle={() => setFavorite(v.name, !(v.favorite || v.isFavorite))}
+                label="Toggle favorite vehicle"
+              />
+            </div>
             <div className="item-card__meta">
               {v.fuelType ? `${capitalize(v.fuelType)} • ` : ""}
               {formatConsumptionDisplay(v)}
@@ -574,8 +538,17 @@ export default function VehiclesPage() {
 
 
       </div>
-
       {error && <div className="error-banner">{error}</div>}
+
+      <section className="list-section">
+        <h2 className="section-title">Favorites</h2>
+        <ul className="item-list">
+          {renderList(
+            favorites,
+            searchTerm.trim() ? "No favorites match your search" : "No favorites yet"
+          )}
+        </ul>
+      </section>
 
       <section className="list-section">
         <h2 className="section-title">Bikes</h2>

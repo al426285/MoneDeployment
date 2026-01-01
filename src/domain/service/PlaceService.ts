@@ -9,6 +9,31 @@ import { UserSession } from "../session/UserSession.js";
 const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY ;
 const ORS_BASE = "/ors";
 
+const PLACE_CACHE_KEY = (userId: string) => `places_cache_${userId}`;
+
+const readCache = <T>(key: string): T | null => {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        return JSON.parse(raw) as T;
+    } catch {
+        return null;
+    }
+};
+
+const writeCache = (key: string, payload: unknown) => {
+    try {
+        const wrapped = { data: payload, cachedAt: Date.now() };
+        localStorage.setItem(key, JSON.stringify(wrapped));
+    } catch { /* ignore cache write errors */ }
+};
+
+const requireOnline = () => {
+    if (typeof navigator !== "undefined" && navigator && navigator.onLine === false) {
+        throw new Error("DatabaseNotAvailableException");
+    }
+};
+
 
 export interface ToponymSuggestion {
     id: string;
@@ -54,26 +79,8 @@ export class PlaceService {
         }
 
         async getSavedPlaces(userId?: string): Promise<any[]> {
-            if (userId) {
-                try {
-                    const places = await this.placeRepository.getPlacesByUser(userId);
-                    return places;
-                } catch (error) {
-                    if (error instanceof Error) handleAuthError(error);
-                    throw error;
-                }
-            }
-            const session = this.sessionProvider();
-            if (!session || !session.userId) {
-                throw new Error("SessionNotFoundException");
-            }
-            try {
-                const places = await this.placeRepository.getPlacesByUser(session.userId);
-                return places;
-            } catch (error) {
-                if (error instanceof Error) handleAuthError(error);
-                throw error;
-            }
+            const resolvedId = this.resolveUserId(userId);
+            return this.getPlacesWithCache(resolvedId);
         }
 
         async getPlaceDetails(placeId: string, userId?: string): Promise<any | null> {
@@ -82,6 +89,7 @@ export class PlaceService {
         }
 
         async savePlace(place: Partial<Place>, options: { userId?: string } = {}): Promise<Place> {
+            requireOnline();
             const resolvedId = this.resolveUserId(options.userId);
             const entity = new Place(
                 place.name ?? "",
@@ -95,10 +103,12 @@ export class PlaceService {
             const docId = await this.placeRepository.createPlace(resolvedId, entity);
             const created = await this.placeRepository.getPlaceById(resolvedId, docId);
             if (!created) throw new Error("Place could not be created");
+            await this.refreshPlacesCache(resolvedId);
             return created;
         }
 
         async editPlace(placeId: string, updates: Partial<Place>, options: { userId?: string } = {}): Promise<Place> {
+            requireOnline();
             const resolvedId = this.resolveUserId(options.userId);
             const current = await this.getPlaceDetails(placeId, resolvedId);
             if (!current) throw new Error("Place not found");
@@ -113,6 +123,7 @@ export class PlaceService {
             await this.placeRepository.updatePlace(resolvedId, placeId, entity);
             const refreshed = await this.placeRepository.getPlaceById(resolvedId, placeId);
             if (!refreshed) throw new Error("Place could not be refreshed after edit");
+            await this.refreshPlacesCache(resolvedId);
             return refreshed;
         }
 
@@ -147,8 +158,17 @@ export class PlaceService {
 
         
         async deletePlace(placeId: string, options: { userId?: string } = {}): Promise<void> {
+            requireOnline();
             const resolvedId = this.resolveUserId(options.userId);
             await this.placeRepository.deletePlace(resolvedId, placeId);
+            await this.refreshPlacesCache(resolvedId);
+        }
+
+        async setFavorite(placeId: string, favorite: boolean, options: { userId?: string } = {}): Promise<void> {
+            requireOnline();
+            const resolvedId = this.resolveUserId(options.userId);
+            await this.placeRepository.updatePlace(resolvedId, placeId, { favorite } as any);
+            await this.refreshPlacesCache(resolvedId);
         }
 
         async deletePlaceByName(name: string): Promise<void> {
@@ -186,6 +206,40 @@ export class PlaceService {
 
             if (duplicated) {
                 throw new Error("PlaceAlreadySavedException");
+            }
+        }
+
+        private async getPlacesWithCache(userId: string): Promise<any[]> {
+            const cacheKey = PLACE_CACHE_KEY(userId);
+            const cached = readCache<{ data: any[] }>(cacheKey)?.data ?? null;
+            const offline = typeof navigator !== "undefined" && navigator && navigator.onLine === false;
+            if (offline) {
+                if (cached) return cached;
+                throw new Error("OfflineNoCache");
+            }
+            try {
+                const places = await this.placeRepository.getPlacesByUser(userId);
+                if (Array.isArray(places) && places.length === 0 && cached && cached.length > 0) {
+                    // Avoid overwriting a valid snapshot with an empty result from a flaky/offline fetch.
+                    return cached;
+                }
+                writeCache(cacheKey, places);
+                return places;
+            } catch (error) {
+                if (cached) return cached; // fallback on error (offline o fallo puntual)
+                if (error instanceof Error) handleAuthError(error as FirebaseError);
+                throw error;
+            }
+        }
+
+        private async refreshPlacesCache(userId: string): Promise<void> {
+            const offline = typeof navigator !== "undefined" && navigator && navigator.onLine === false;
+            if (offline) return; // avoid overwriting cache with offline/empty reads
+            try {
+                const places = await this.placeRepository.getPlacesByUser(userId);
+                writeCache(PLACE_CACHE_KEY(userId), places);
+            } catch {
+                /* cache refresh is best-effort */
             }
         }
 

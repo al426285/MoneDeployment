@@ -44,6 +44,11 @@ export const placeViewmodel = {
     return service.deletePlace(placeId, { userId: resolveUserId(userId) });
   },
 
+  async toggleFavorite(placeId: string, favorite: boolean, userId?: string) {
+    const service = getPlaceService();
+    return service.setFavorite(placeId, favorite, { userId: resolveUserId(userId) });
+  },
+
   async suggestToponyms(query, limit) {
     const service = getPlaceService();
     return service.suggestToponyms(query, limit);

@@ -74,7 +74,7 @@ describe("HU07-HU11: Places integration", () => {
         toponymicAddress: undefined,
       });
 
-      repo.getPlacesByUser.mockResolvedValueOnce([]).mockResolvedValueOnce([storedPlace]);
+      repo.getPlacesByUser.mockResolvedValueOnce([]).mockResolvedValue([storedPlace]);
       repo.createPlace.mockResolvedValue(storedPlace.id);
       repo.getPlaceById.mockResolvedValue(storedPlace);
 
@@ -113,7 +113,7 @@ describe("HU07-HU11: Places integration", () => {
     test("HU08-E1 - Válido: guarda un lugar usando topónimo", async () => {
       const storedPlace = buildPlace({ id: "place-topo", name: "Casa", toponymicAddress: "Calle 123" });
 
-      repo.getPlacesByUser.mockResolvedValueOnce([]).mockResolvedValueOnce([storedPlace]);
+      repo.getPlacesByUser.mockResolvedValueOnce([]).mockResolvedValue([storedPlace]);
       repo.createPlace.mockResolvedValue(storedPlace.id);
       repo.getPlaceById.mockResolvedValue(storedPlace);
 

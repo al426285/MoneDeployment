@@ -7,6 +7,31 @@ import { UserSession } from "../session/UserSession";
 import type { Vehicle } from "../model/VehicleInterface";
 import { VehicleRepositoryFirebase } from "../../data/repository/VehicleRepositoryFirebase";
 
+const VEHICLE_CACHE_KEY = (userId: string) => `vehicles_cache_${userId}`;
+
+const readCache = <T>(key: string): T | null => {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        return JSON.parse(raw) as T;
+    } catch {
+        return null;
+    }
+};
+
+const writeCache = (key: string, payload: unknown) => {
+    try {
+        const wrapped = { data: payload, cachedAt: Date.now() };
+        localStorage.setItem(key, JSON.stringify(wrapped));
+    } catch { /* ignore cache write errors */ }
+};
+
+const requireOnline = () => {
+    if (typeof navigator !== "undefined" && navigator && navigator.onLine === false) {
+        throw new Error("DatabaseNotAvailableException");
+    }
+};
+
 
 export class VehicleService {
     private vehicleRepository: VehicleRepository;
@@ -38,11 +63,43 @@ export class VehicleService {
     //OBTENER LISTA DE VEHICULOS
     async getVehicles(ownerId: string | undefined): Promise<Vehicle[]> {
         ownerId = this.resolveUserId(ownerId);
-        return this.vehicleRepository.getVehiclesByOwnerId(ownerId);
+        const cacheKey = VEHICLE_CACHE_KEY(ownerId);
+        const rawCache = readCache<{ data: Vehicle[] }>(cacheKey);
+      //  console.log("[VehicleService.getVehicles] rawCache:", rawCache);
+        const cached = rawCache?.data ?? null;
+      //  console.log("[VehicleService.getVehicles] cached (extracted .data):", cached);
+        const offline = typeof navigator !== "undefined" && navigator && navigator.onLine === false;
+      //  console.log("[VehicleService.getVehicles] offline:", offline);
+        if (offline) {
+            if (cached) return cached;
+            throw new Error("OfflineNoCache");
+        }
+        try {
+            const list = await this.vehicleRepository.getVehiclesByOwnerId(ownerId);
+           
+            const normalized = (Array.isArray(list) ? list : []).map((v: any) => ({
+                ...v,
+                favorite: Boolean(v?.favorite || v?.isFavorite),
+                isFavorite: Boolean(v?.favorite || v?.isFavorite),
+            }));
+          
+            if (Array.isArray(normalized) && normalized.length === 0 && cached && cached.length > 0) {
+                // Avoid wiping cache if an offline/flaky fetch returned empty.
+            //    console.log("[VehicleService.getVehicles] returning cached (empty fetch fallback)");
+                return cached;
+            }
+            writeCache(cacheKey, normalized);
+            return normalized;
+        } catch (err) {
+        //    console.error("[VehicleService.getVehicles] error:", err);
+            if (cached) return cached; // offline fallback
+            throw err;
+        }
     }
 
     //tipo {(walking, bike, electricCar, fuelCar), fueltype{ gasoline, diesel} el electric se le asigna por defecto, consumo{numero}}
     async registerVehicle(ownerId: string | undefined, type: string, name: string, fuelType?: FuelType, consumption?: number): Promise<void> {
+        requireOnline();
 
 
         ownerId = this.resolveUserId(ownerId);
@@ -81,12 +138,17 @@ export class VehicleService {
 
         // Guardamos en Firebase
         await this.vehicleRepository.saveVehicle(ownerId, vehicle);
+        await this.refreshVehiclesCache(ownerId);
     }
     async deleteVehicle(ownerId: string, vehicleName: string): Promise<void> {
-        return this.vehicleRepository.deleteVehicle(ownerId, vehicleName);
+        requireOnline();
+        const resolvedId = this.resolveUserId(ownerId);
+        await this.vehicleRepository.deleteVehicle(resolvedId, vehicleName);
+        await this.refreshVehiclesCache(resolvedId);
     }
 
     async editVehicle(ownerId: string, vehicleName: string, updates: Partial<Vehicle>): Promise<Vehicle> {
+        requireOnline();
         //sin implementar
         const userId = this.resolveUserId(ownerId);
         const current = await this.getVehicleDetails(vehicleName, userId);
@@ -107,10 +169,34 @@ export class VehicleService {
 
         const refreshed = await this.vehicleRepository.getVehicleByName(userId, entity.name);
         if (!refreshed) throw new Error("Vehicle could not be refreshed after edit");
+        await this.refreshVehiclesCache(userId);
         return refreshed;
 
     }
+
+    async setFavorite(ownerId: string | undefined, vehicleName: string, favorite: boolean): Promise<void> {
+        requireOnline();
+        const resolvedId = this.resolveUserId(ownerId);
+        await this.vehicleRepository.updateVehicle(resolvedId, vehicleName, { favorite } as any);
+        await this.refreshVehiclesCache(resolvedId);
+    }
     async getVehicleDetails(vehicleName: string, userId: string): Promise<Vehicle | null> {
         return this.vehicleRepository.getVehicleByName(userId, vehicleName);
+    }
+
+    private async refreshVehiclesCache(ownerId: string): Promise<void> {
+        const offline = typeof navigator !== "undefined" && navigator && navigator.onLine === false;
+        if (offline) return; // avoid overwriting cache with empty offline reads
+        try {
+            const list = await this.vehicleRepository.getVehiclesByOwnerId(ownerId);
+            const normalized = (Array.isArray(list) ? list : []).map((v: any) => ({
+                ...v,
+                favorite: Boolean(v?.favorite || v?.isFavorite),
+                isFavorite: Boolean(v?.favorite || v?.isFavorite),
+            }));
+            writeCache(VEHICLE_CACHE_KEY(ownerId), normalized);
+        } catch {
+            /* best-effort cache refresh */
+        }
     }
 }

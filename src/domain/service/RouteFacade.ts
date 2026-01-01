@@ -10,6 +10,12 @@ import { DistanceUnitDecorator } from "../decorators/route/DistanceUnitDecorator
 import { ConsumptionUnitDecorator } from "../decorators/route/ConsumptionUnitDecorator";
 import { CostEstimatorDecorator } from "../decorators/Cost/CostEstimatorDecorator";
 
+const requireOnline = () => {
+    if (typeof navigator !== "undefined" && navigator && navigator.onLine === false) {
+        throw new Error("Se requiere conexión a internet para esta acción.");
+    }
+};
+
 export interface RouteResponse {
     preferences: UserPreferences;
     route: SerializedRoute;
@@ -53,6 +59,7 @@ export class RouteFacade {
     }
 
     async requestRoute(options: RouteRequestOptions & { userId?: string }, vehicle?: Vehicle): Promise<RouteResponse> {
+        requireOnline();
         const resolvedUserId = this.resolveUserId(options.userId);
 
         const now = typeof performance !== "undefined" ? () => performance.now() : () => Date.now();
@@ -129,6 +136,7 @@ export class RouteFacade {
     }
 
     async previewRoute(options: RouteRequestOptions, vehicle?: Vehicle): Promise<SerializedRoute> {
+        requireOnline();
         const plannerOptions = this.applyVehicleOverrides(options, vehicle);
         const rawRoute = await this.service.requestRoute(plannerOptions);
         return this.serializeRoute(rawRoute);
@@ -169,6 +177,10 @@ export class RouteFacade {
 
     async deleteSavedRoute(routeId: string, userId?: string) {
         return this.service.deleteSavedRoute(routeId, userId);
+    }
+
+    async setFavorite(routeId: string, favorite: boolean, userId?: string) {
+        return this.service.setFavorite(routeId, favorite, userId);
     }
 
     private stripFacadeFields(options: RouteRequestOptions & { userId?: string }): RouteRequestOptions {

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomSwal from "../../core/utils/CustomSwal.js";
 import EditDeleteActions from "../components/EditDeleteActions.jsx";
+import FavoriteToggle from "../components/FavoriteToggle.jsx";
 import { useRouteViewmodel } from "../../viewmodel/routeViewmodel";
 
 const PLUS_ICON_PATH = "M12 2a1 1 0 0 1 1 1v8h8a1 1 0 1 1 0 2h-8v8a1 1 0 1 1-2 0v-8H3a1 1 0 1 1 0-2h8V3a1 1 0 0 1 1-1z";
@@ -10,7 +11,7 @@ const ROUTE_ICON_STYLE = { width: "28px", height: "28px", objectFit: "contain" }
 
 export default function ListRoutes() {
   const navigate = useNavigate();
-  const { listSavedRoutes, deleteSavedRoute } = useRouteViewmodel();
+  const { listSavedRoutes, deleteSavedRoute, setFavorite } = useRouteViewmodel();
 
   const [routes, setRoutes] = useState([]);
   const [query, setQuery] = useState("");
@@ -107,6 +108,22 @@ export default function ListRoutes() {
     }
   };
 
+  const handleToggleFavorite = async (routeId, current) => {
+    // Optimistic UI update to avoid scroll jumps from full reloads
+    setRoutes((prev) =>
+      prev.map((r) => (r.id === routeId ? { ...r, favorite: !current, isFavorite: !current } : r))
+    );
+    try {
+      await setFavorite(routeId, !current);
+    } catch (err) {
+      // Rollback on error
+      setRoutes((prev) =>
+        prev.map((r) => (r.id === routeId ? { ...r, favorite: current, isFavorite: current } : r))
+      );
+      setError(err?.message || "Unable to update favorite.");
+    }
+  };
+
   const formatMeta = (route) => {
     const parts = [];
     if (route?.origin && route?.destination) parts.push(`${route.origin} → ${route.destination}`);
@@ -176,7 +193,14 @@ export default function ListRoutes() {
                   <img src={ROUTE_ICON_SRC} alt="Route icon" style={ROUTE_ICON_STYLE} />
                 </div>
                 <div className="item-card__content">
-                  <div className="item-card__title">{route?.name || "Unnamed route"}</div>
+                  <div className="item-card__title" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                    <span>{route?.name || "Unnamed route"}</span>
+                    <FavoriteToggle
+                      active={Boolean(route?.favorite || route?.isFavorite)}
+                      onToggle={(next) => handleToggleFavorite(route.id, route?.favorite || route?.isFavorite)}
+                      label="Toggle favorite route"
+                    />
+                  </div>
                   <div className="item-card__meta">{formatMeta(route) || "No extra information"}</div>
                 </div>
                 <EditDeleteActions id={route?.id} onEdit={handleEditRoute} onDelete={handleDeleteRoute} />
@@ -219,7 +243,14 @@ export default function ListRoutes() {
                   <img src={ROUTE_ICON_SRC} alt="Route icon" style={ROUTE_ICON_STYLE} />
                 </div>
                 <div className="item-card__content">
-                  <div className="item-card__title">{route?.name || "Unnamed route"}</div>
+                  <div className="item-card__title" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                    <span>{route?.name || "Unnamed route"}</span>
+                    <FavoriteToggle
+                      active={Boolean(route?.favorite || route?.isFavorite)}
+                      onToggle={(next) => handleToggleFavorite(route.id, route?.favorite || route?.isFavorite)}
+                      label="Toggle favorite route"
+                    />
+                  </div>
                   <div className="item-card__meta">{formatMeta(route) || "No extra information"}</div>
                 </div>
                 <EditDeleteActions id={route?.id} onEdit={handleEditRoute} onDelete={handleDeleteRoute} />
@@ -258,7 +289,14 @@ export default function ListRoutes() {
                   <img src={ROUTE_ICON_SRC} alt="Route icon" style={ROUTE_ICON_STYLE} />
                 </div>
                 <div className="item-card__content">
-                  <div className="item-card__title">{route?.name || "Unnamed route"}</div>
+                  <div className="item-card__title" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                    <span>{route?.name || "Unnamed route"}</span>
+                    <FavoriteToggle
+                      active={Boolean(route?.favorite || route?.isFavorite)}
+                      onToggle={(next) => handleToggleFavorite(route.id, route?.favorite || route?.isFavorite)}
+                      label="Toggle favorite route"
+                    />
+                  </div>
                   <div className="item-card__meta">{formatMeta(route) || "No extra information"}</div>
                 </div>
                 <EditDeleteActions id={route?.id} onEdit={handleEditRoute} onDelete={handleDeleteRoute} />

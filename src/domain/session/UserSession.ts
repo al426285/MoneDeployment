@@ -91,6 +91,16 @@ export class UserSession {
         try {
             localStorage.removeItem("user_session");
             localStorage.removeItem("user_profile");
+            // Remove persisted domain caches tied to the user so a logout cannot leak data.
+            const prefixes = ["places_cache_", "routes_cache_", "vehicles_cache_", "prefs_cache_"];
+            try {
+                const keys = Object.keys(localStorage);
+                for (const key of keys) {
+                    if (prefixes.some((prefix) => key.startsWith(prefix))) {
+                        try { localStorage.removeItem(key); } catch { /* ignore */ }
+                    }
+                }
+            } catch { /* ignore cache cleanup errors */ }
         } catch { /* ignore */ }
     }
 }

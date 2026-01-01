@@ -10,7 +10,7 @@ const collectionForUser = (userId: string) => {
 	return collection(db, "users", userId, "places");
 };
 
-const normalizeDoc = (snapshot: any): { id: string; name: string; latitude: number; longitude: number; toponymicAddress?: string; description?: string } => {
+const normalizeDoc = (snapshot: any): { id: string; name: string; latitude: number; longitude: number; toponymicAddress?: string; description?: string; favorite: boolean } => {
 	const data = snapshot.data() || {};
 	const place = new Place(
 		data.name ?? "",
@@ -27,6 +27,7 @@ const normalizeDoc = (snapshot: any): { id: string; name: string; latitude: numb
 		longitude: place.longitude,
 		toponymicAddress: place.toponymicAddress,
 		description: place.description,
+		favorite: Boolean(data.favorite),
 	};
 };
 
@@ -41,6 +42,7 @@ const serializePlace = (place: Place | Partial<Place>) => {
 		longitude: place?.longitude,
 		toponymicAddress: (place as any)?.toponymicAddress,
 		description: place?.description,
+		favorite: (place as any)?.favorite,
 	});
 };
 
@@ -67,6 +69,7 @@ export class PlaceRepositoryFirebase implements PlaceRepository {
 		const placesRef = collectionForUser(userId);
 		const docRef = await addDoc(placesRef, {
 			...serializePlace(place),
+			favorite: Boolean((place as any)?.favorite),
 			createdAt: serverTimestamp(),
 			updatedAt: serverTimestamp(),
 		});

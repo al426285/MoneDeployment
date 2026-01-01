@@ -20,6 +20,7 @@ export class RouteRepositoryFirebase implements RouteRepository {
       mobilityType: payload.mobilityType,
       mobilityMethod: payload.mobilityMethod,
       routeType: payload.routeType,
+      favorite: Boolean((payload as any)?.favorite),
       createdAt: serverTimestamp(),
     });
     return ref.id;
@@ -38,6 +39,7 @@ export class RouteRepositoryFirebase implements RouteRepository {
         mobilityType: data.mobilityType,
         mobilityMethod: data.mobilityMethod,
         routeType: data.routeType,
+        favorite: Boolean(data.favorite),
         createdAt: data.createdAt?.toDate?.() ?? new Date(),
       };
     });
@@ -61,28 +63,32 @@ export class RouteRepositoryFirebase implements RouteRepository {
       mobilityType: data.mobilityType,
       mobilityMethod: data.mobilityMethod,
       routeType: data.routeType,
+      favorite: Boolean(data.favorite),
       createdAt: data.createdAt?.toDate?.() ?? new Date(),
     };
   }
 
   async updateRoute(userId: string, routeId: string, payload: RouteSavedDTO): Promise<void> {
     if (!routeId) throw new Error("Route id is required");
-    const routeName = payload.name?.trim();
-    if (!routeName) {
-      throw new Error("Route name is required when updating a route");
+    const updatePayload: Partial<RouteSavedDTO> & { updatedAt: ReturnType<typeof serverTimestamp> } = {
+      updatedAt: serverTimestamp(),
+    };
+
+    if (payload.name !== undefined) {
+      const routeName = payload.name?.trim();
+      if (routeName) {
+        updatePayload.name = routeName;
+      }
+      // If name is provided but empty, skip updating it to allow favorite-only updates without throwing.
     }
-    await setDoc(
-      doc(userRoutesCollection(userId), routeId),
-      {
-        name: routeName,
-        origin: payload.origin,
-        destination: payload.destination,
-        mobilityType: payload.mobilityType,
-        mobilityMethod: payload.mobilityMethod,
-        routeType: payload.routeType,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+
+    if (payload.origin !== undefined) updatePayload.origin = payload.origin;
+    if (payload.destination !== undefined) updatePayload.destination = payload.destination;
+    if (payload.mobilityType !== undefined) updatePayload.mobilityType = payload.mobilityType;
+    if ((payload as any)?.mobilityMethod !== undefined) updatePayload.mobilityMethod = (payload as any).mobilityMethod;
+    if (payload.routeType !== undefined) updatePayload.routeType = payload.routeType;
+    if ((payload as any)?.favorite !== undefined) updatePayload.favorite = Boolean((payload as any).favorite);
+
+    await setDoc(doc(userRoutesCollection(userId), routeId), updatePayload, { merge: true });
   }
 }

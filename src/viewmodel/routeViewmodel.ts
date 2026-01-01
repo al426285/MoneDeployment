@@ -34,6 +34,7 @@ export interface RouteViewmodelState {
 	getSavedRoute: (routeId: string, userId?: string) => Promise<any | null>;
 	updateSavedRoute: (routeId: string, payload: any, userId?: string) => Promise<void>;
 	deleteSavedRoute: (routeId: string, userId?: string) => Promise<void>;
+	setFavorite: (routeId: string, favorite: boolean, userId?: string) => Promise<void>;
 }
 
 const sanitizeValue = (value?: string | null): string => value?.trim() ?? "";
@@ -129,6 +130,10 @@ export const useRouteViewmodel = (): RouteViewmodelState => {
 		return facade.deleteSavedRoute(routeId, userId);
 	}, [facade]);
 
+	const setFavorite = useCallback(async (routeId: string, favorite: boolean, userId?: string) => {
+		return facade.setFavorite(routeId, favorite, userId);
+	}, [facade]);
+
 	const searchRoute = useCallback(
 		async (options: RouteSearchOptions): Promise<RouteResponse> => {
 			const context = normalizeRouteOptions(options);
@@ -207,6 +212,7 @@ export const useRouteViewmodel = (): RouteViewmodelState => {
 		getSavedRoute,
 		updateSavedRoute,
 		deleteSavedRoute,
+		setFavorite,
 	};
 };
 

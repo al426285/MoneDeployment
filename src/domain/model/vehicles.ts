@@ -8,6 +8,7 @@ export class Bike implements Vehicle {
     type: string = 'Bike';
     fuelType: FuelType | null = null;
     consumption: Consumption;
+    favorite?: boolean;
 
     constructor(name: string, consumptionAmount: number) {
         this.name = name;
@@ -25,6 +26,7 @@ export class Walking implements Vehicle {
     type: string = 'Walking';
     fuelType: FuelType | null = null;
     consumption: Consumption;
+    favorite?: boolean;
 
     constructor(name: string, caloriesPerMin: number = 5) { // por defecto son unas 5 kcal/min
         this.name = name;
@@ -43,6 +45,7 @@ export class ElectricCar implements Vehicle {
     type: string = 'ElectricCar';
     fuelType: FuelType = 'electric';
     consumption: Consumption;
+    favorite?: boolean;
 
     constructor(name: string, consumptionAmount: number) {
         this.name = name;
@@ -61,6 +64,7 @@ export class FuelCar implements Vehicle {
     type: string = 'FuelCar';
     fuelType: FuelType = 'gasoline';
     consumption: Consumption;
+    favorite?: boolean;
 
     constructor(name: string, fuelType: FuelType, consumptionAmount: number) {
         if (fuelType !== 'gasoline' && fuelType !== 'diesel') {
