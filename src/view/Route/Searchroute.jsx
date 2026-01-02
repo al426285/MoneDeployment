@@ -8,6 +8,9 @@ import LocationInput from "../components/LocationInput";
 import SavedPlacesModal from "../components/SavedPlacesModal";
 import MobilitySelector from "../components/MobilitySelector";
 import RouteTypeSelector from "../components/RouteTypeSelector";
+import {
+    getUserDefaultOptions,
+} from "../../viewmodel/UserViewModel";
 
 const DEFAULT_CENTER = [39.99256, -0.067387];
 
@@ -34,9 +37,18 @@ export default function SearchRoute() {
   const navigate = useNavigate();
   const { loading, error: requestError, searchRoute } = useRouteViewmodel();
 
+const [prefs] = useState(null);
+  useEffect(() => {
+    const loadPrefs = async () => {
+    const data = await getUserDefaultOptions();
+    setMobility(data?.transportMode ?? "vehicle");
+    setRouteType(data?.routeType ?? "fastest");
+  };
+  loadPrefs();
+  }, []);
   const [routeLabel, setRouteLabel] = useState("");
-  const [mobility, setMobility] = useState("vehicle");
-  const [routeType, setRouteType] = useState("fastest");
+  const [mobility, setMobility] = useState(prefs?.transportMode ?? "vehicle"); //aqui inicial
+  const [routeType, setRouteType] = useState(prefs?.routeType ?? "fastest");
   const [origin, setOrigin] = useState(() => createLocationState());
   const [destination, setDestination] = useState(() => createLocationState());
   const [polyline, setPolyline] = useState([]);
