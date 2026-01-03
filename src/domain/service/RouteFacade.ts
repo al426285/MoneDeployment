@@ -1,10 +1,11 @@
 import { RouteService,  type RouteRequestOptions } from "./RouteService";
-import { UserPreferencesService, type UserPreferences } from "./UserPreferencesService";
+import { UserPreferencesService } from "./UserPreferencesService";
 import { energyPriceGateway, type VehicleEnergySource } from "../../data/provider/EnergyPriceGateway";
 import { type CostEstimatorGateway, type PriceSnapshot } from "../decorators/Cost/CostEstimatorDecorator";
 import { UserSession } from "../session/UserSession";
 import type { Vehicle } from "../model/VehicleInterface";
 import type { ConsumptionUnit, IRouteData, DistanceUnit } from "../model/IRouteData";
+import type { UserPreferences } from "../model/UserPreferences";
 import { Route, type RouteProps } from "../model/Route";
 import { DistanceUnitDecorator } from "../decorators/route/DistanceUnitDecorator";
 import { ConsumptionUnitDecorator } from "../decorators/route/ConsumptionUnitDecorator";

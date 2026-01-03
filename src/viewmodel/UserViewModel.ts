@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { UserService } from "../domain/service/UserService";
 import { UserSession } from "../domain/session/UserSession";
-import { UserPreferencesService, type UserPreferences } from "../domain/service/UserPreferencesService";
+import { UserPreferencesService } from "../domain/service/UserPreferencesService";
+import { UserDefaultOptionsService } from "../domain/service/UserDefaultOptionsService";
+import type { UserPreferences } from "../domain/model/UserPreferences";
+import type { UserDefaultOptions } from "../domain/model/UserDefaultOptions";
 
 // helper para obtener la instancia cuando la necesitamos (no cacheada a nivel módulo)
 const getSvc = () => UserService.getInstance();
 const preferencesService = new UserPreferencesService();
+const defaultOptionsService = new UserDefaultOptionsService();
 
 export const useUserViewModel = (onNavigate: (path: string) => void) => {
   const [email, setEmail] = useState<string>("");
@@ -331,11 +335,32 @@ export const saveUserMeasurementPreferences = async (
   return preferencesService.get(uid);
 };
 
+export const getUserDefaultOptions = async (): Promise<UserDefaultOptions> => {
+  const uid = getCurrentUid();
+  if (!uid) {
+    throw new Error("User not authenticated");
+  }
+  return defaultOptionsService.get(uid);
+};
+
+export const saveUserDefaultOptions = async (
+  options: Partial<UserDefaultOptions>
+): Promise<UserDefaultOptions> => {
+  const uid = getCurrentUid();
+  if (!uid) {
+    throw new Error("User not authenticated");
+  }
+  await defaultOptionsService.save(uid, options);
+  return defaultOptionsService.get(uid);
+};
+
 const userViewmodel = {
   getUser,
   updateAccountInfo,
   getUserMeasurementPreferences,
   saveUserMeasurementPreferences,
+  getUserDefaultOptions,
+  saveUserDefaultOptions,
 };
 
 export default userViewmodel;

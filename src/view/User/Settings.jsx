@@ -2,6 +2,7 @@ import React from "react";
 import DeleteAccount from "./DeleteAccount";
 import AccountManagement from "./AccountManagement";
 import UnitsManagement from "./UnitsManagement";
+import RoutePreferencesManagement from "./RoutePreferencesManagement";
 
 export default function Settings() {
     return (
@@ -10,6 +11,8 @@ export default function Settings() {
             <AccountManagement />
             <hr className="divider" role="separator" aria-orientation="horizontal" />
             <UnitsManagement />
+            <hr className="divider" role="separator" aria-orientation="horizontal" />
+            <RoutePreferencesManagement />
             <hr className="divider" role="separator" aria-orientation="horizontal" />
             <DeleteAccount />
         </div>
