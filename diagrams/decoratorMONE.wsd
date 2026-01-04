@@ -1,86 +1,68 @@
-@startuml decorator_full
+@startuml decoratorMONE
 !theme plain
 skinparam linetype ortho
 
-' Interfaz común
-interface IRoute {
+interface IRouteData <<interface>> {
   + getDistance(): number
+  + getDistanceUnit(): DistanceUnit
   + getDuration(): number
-  + getCost(): number
   + getMobilityType(): string
-  + getSteps(): string[]
   + getRouteType(): string
+  + getSteps(): string[]
+  + getConsumptionValue(): number | null
+  + getConsumptionUnit(): ConsumptionUnit | null
+  + getCost(): number
+  + getCostCurrency(): string
 }
 
-' Clase concreta (componente)
-class Route {
-  - distance: number
-  - duration: number
+class Route implements IRouteData {
+  - distanceMeters: number
+  - durationMinutes: number
   - cost: number
-  - mobilityType: string
-  - steps: string[]
-  - routeType: string
-  + getDistance(): number
-  + getDuration(): number
-  + getCost(): number
-  + getMobilityType(): string
-  + getSteps(): string[]
-  + getRouteType(): string
+  - consumptionPer100Km: number | null
+  - consumptionUnit: ConsumptionUnit | null
+  + getDistance()
+  + getDuration()
+  + getCost()
+  + getConsumptionValue()
 }
 
-' Decorador abstracto (implementa IRoute y referencia a otro IRoute)
-abstract class RouteDecorator {
-  # decoratedRoute: IRoute
-  + getDistance(): number
-  + getDuration(): number
-  + getCost(): number
-  + getMobilityType(): string
-  + getSteps(): string[]
-  + getRouteType(): string
+abstract class RouteDecorator implements IRouteData {
+  # route: IRouteData
+  + getDistance()
+  + getDuration()
+  + getCost()
+  + getConsumptionValue()
+  + getConsumptionUnit()
 }
 
-' Decoradores concretos
 class DistanceUnitDecorator {
-  - unit: DistanceUnit
+  - preferredUnit: DistanceUnit
   + getDistance(): number
-}
-class ElectricConsumptionDecorator {
-  - unit: ConsumptionUnitElectricity
-  + getDistance(): number
+  + getDistanceUnit(): DistanceUnit
 }
 
-class FuelConsumptionDecorator  {
-  - unit: ConsumptionUnitCombustion
-  + getDistance(): number
-}
-enum DistanceUnit {
-  kilometers
-  miles
+class ConsumptionUnitDecorator {
+  - preferredUnit: ConsumptionUnit
+  + getConsumptionValue(): number | null
+  + getConsumptionUnit(): ConsumptionUnit | null
 }
 
-enum ConsumptionUnitElectricity {
-  kWh/100km
-  km/kWh
-}
-enum ConsumptionUnitCombustion {
-  L/100km
-  km/L
+class CostEstimatorDecorator {
+  - priceSnapshot: PriceSnapshot
+  + getCost(): number
+  + getCostCurrency(): string
 }
 
+class RouteFacade {
+  + requestRoute(): RouteResponse
+}
 
-
-' Relaciones de implementación / herencia
-IRoute <|.. Route
-IRoute <|.. RouteDecorator
+RouteDecorator *-- IRouteData
 RouteDecorator <|-- DistanceUnitDecorator
-RouteDecorator <|-- FuelConsumptionDecorator
-RouteDecorator <|-- ElectricConsumptionDecorator
+RouteDecorator <|-- ConsumptionUnitDecorator
+RouteDecorator <|-- CostEstimatorDecorator
+RouteFacade --> IRouteData
 
-' Composición: el decorador envuelve un IRoute (composición dirigida)
-RouteDecorator *-- IRoute
-
-' Cliente
-class Client
-Client --> IRoute
 
 @enduml

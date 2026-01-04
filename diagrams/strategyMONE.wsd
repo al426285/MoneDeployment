@@ -2,45 +2,47 @@
 !theme plain
 skinparam linetype ortho
 
-class Route{
-    - distance: number
-    - duration: number
-    - cost: number
-    - mobilityType: string
-    - steps: string[]
-    - routeType: string
-    - CostStrategy: costStrategy
-    
-    + setStrategy(CostStrategy): void --para asignar la estrategia adecuada
-    + setCost(): void
+class RouteFacade {
+    + estimateCost(routeProps: RouteProps, priceSnapshot: PriceSnapshot, energy: VehicleEnergySource): number | null
+    - canonicalizeConsumption(value?, unit?): { value: number; unit: ConsumptionUnit } | null
+    - resolveEnergySource(options: RouteRequestOptions): VehicleEnergySource | undefined
 }
 
-
-interface CostStrategy <<interface>> {
-    + calculateCost()
+class CostEstimatorDecorator {
+    - priceSnapshot: PriceSnapshot
+    + getCost(): number
 }
 
-
-class BicycleCostStrategy {
-    + calculateCost(Route route, number cycling): float
+class Route {
+    + getDistance(): number
+    + getConsumptionValue(): number | null
+    + getConsumptionUnit(): ConsumptionUnit | null
 }
 
-class WalkingCostStrategy {
-    + calculateCost(Route route, number walking): float
+class PriceSnapshot {
+    + currency: string
+    + gasolinePerLiter?: number
+    + dieselPerLiter?: number
+    + electricityPerKwh?: number
 }
 
-class VehicleCostStrategy {
-    + calculateCost(Route route, number price, number consumption): float
+enum VehicleEnergySource {
+    gasoline
+    diesel
+    electric
 }
 
+RouteFacade --> Route : usa datos básicos de la ruta
+RouteFacade --> PriceSnapshot : consulta precios energéticos
+RouteFacade --> VehicleEnergySource : decide fórmula según energía
+RouteFacade --> CostEstimatorDecorator : crea decorador cuando hay snapshot
+CostEstimatorDecorator --> PriceSnapshot
 
-
-
-Route o-left-> CostStrategy
-
-CostStrategy <|.. BicycleCostStrategy
-CostStrategy <|.. WalkingCostStrategy
-CostStrategy <|.. VehicleCostStrategy
-
+note bottom of RouteFacade
+  La estimación de costes se resuelve con condicionales sobre VehicleEnergySource
+  dentro de RouteFacade. No existen objetos Strategy desacoplados en el código,
+  por lo que el patrón Strategy no está implementado como clases intercambiables.
+  (src/domain/service/RouteFacade.ts)
+end note
 
 @enduml

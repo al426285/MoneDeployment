@@ -1,23 +1,31 @@
-@startuml adapter
+@startuml adapterMONE
 !theme plain
 skinparam linetype ortho
 
-interface RouteProviderInterfaceClient <<interface>> {
-  + getRoute(start: string, end: string, mobility: string, type: string): Route
+class RouteService {
+  - provider: IRouteProvider
+  + requestRoute(origin, destination, mobilityType, routeType): Promise<IRouteData>
 }
 
-class OpenRouteAdapter{
-  - openRouteServiceAPI: Service
-  + getRoute(start: string, end: string, mobility: string, type: string): Route
+interface IRouteProvider <<interface>> {
+  + getRoute(origin: string, destination: string, mobilityType: string, routeType: string): Promise<Route>
 }
 
-class OpenRouteService {
-  + getRoute(start: string, end: string, mobility: string, type: string): json 
+class OpenRouteServiceAdapter {
+  - api: OpenRouteServiceHttpClient
+  + getRoute(origin: string, destination: string, mobilityType: string, routeType: string): Promise<Route>
 }
 
-RouteProviderInterfaceClient <|.. OpenRouteAdapter
+class OpenRouteServiceHttpClient {
+  + getRoute(origin: string, destination: string, mobilityType: string, routeType: string): Promise<Response>
+}
 
-Client -right-> RouteProviderInterfaceClient
-OpenRouteAdapter -right-> OpenRouteService
+class Route
+
+RouteService --> IRouteProvider : usa
+IRouteProvider <|.. OpenRouteServiceAdapter
+OpenRouteServiceAdapter --> OpenRouteServiceHttpClient : solicita JSON
+OpenRouteServiceAdapter ..> Route : crea objeto de dominio
+
 
 @enduml

@@ -39,7 +39,7 @@ export interface CostEstimatorGateway {
   - Unidades esperadas (según contrato IRouteData):
       * Distancia: getDistance() con getDistanceUnit() → "m" | "km" | "mi".
       * Duración: minutos (getDuration()).
-      * Consumo: getConsumptionPer100Km() y getConsumptionUnit() → puede venir
+      * Consumo: getConsumptionValue() y getConsumptionUnit() → puede venir
         como L/100km, km/L, kWh/100km, km/kWh. Normalizar a "por 100 km" antes de usar.
   - Fórmulas recomendadas:
       * Combustión: cost = (distance_km / 100) * (L_per_100km) * price_€/L
@@ -58,7 +58,7 @@ export interface CostEstimatorGateway {
   Recordatorio: IRouteData expone:
     - getDistance(): number
     - getDistanceUnit(): "m" | "km" | "mi"
-    - getConsumptionPer100Km(): number | null
+    - getConsumptionValue(): number | null
     - getConsumptionUnit(): ConsumptionUnit | null
     - getCost(): number
     - getCostCurrency(): string
@@ -103,7 +103,7 @@ export class CostEstimatorDecorator extends RouteDecorator {
     if (!Number.isFinite(distanceKm) || distanceKm <= 0) return this.route.getCost();
 
     // canonicalize consumption to per 100km (L/100km or kwh/100km)
-    const rawConsumption = this.route.getConsumptionPer100Km();
+    const rawConsumption = this.route.getConsumptionValue();
     const rawUnit = this.route.getConsumptionUnit?.() ?? null;
     const canon = canonicalizeConsumption(rawConsumption ?? null, rawUnit ?? null);
     if (!canon || !Number.isFinite(canon.value) || canon.value <= 0) return this.route.getCost();

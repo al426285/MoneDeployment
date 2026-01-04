@@ -1,48 +1,44 @@
-@startuml facade
+@startuml facadeMONE
 !theme plain
 skinparam linetype ortho
 
-class Client
-
-class PlanRouteFacade {
-    - PlaceService placeService
-    - RouteService routeService
-    - MobilityMethodService mobilityMethodService
-    - LocationService locationService
-    + planRouteDefault(origin: string, destination: string): Route
-    + planRouteByMobilityMethod(origin: string, destination: string, mobility: string): Route
-    + saveRoute(route: Route): boolean
-    + getSavedPlaces(): Places[]
-    + getSimilarToponimsBystring(toponym: string): string[]
-    + getLocationByToponim(toponim: string): Loaction
-    + getMoblityMethodsByMobilityType(mobilityType: string): MobilityMethod[]
+class RouteViewModel <<client>> {
+    + planRoute(options)
+    + saveRoute(options)
+    + previewRoute(options)
 }
 
-package SubsystemClasses {
-    class RouteService{
-        + getRoute(origin, destination, mobilityType, routeType): Route
-        + saveRoute(route: Route): void
-    }
-    class PlaceService{
-        + getSavedPlaces(): Place[]
-    }
-    class MobilityMethodService{
-        + getMoblityMethodsByMobilityType(mobilityType: string): MobilityMethod[]
-    }
-    class LocationService{
-        + getSimilarToponimsBystring(toponym: string): string[]
-        + getLocationByToponim(toponim: string): Loaction
-    }
+class RouteFacade {
+    - service: RouteService
+    - preferencesService: UserPreferencesService
+    - costGateway: CostEstimatorGateway
+    - priceSnapshotCache: PriceSnapshot
+    + requestRoute(options, vehicle?): RouteResponse
+    + previewRoute(options, vehicle?): SerializedRoute
+    + requestAndSaveRoute(options, vehicle?): RouteResponse
+    + listSavedRoutes(userId?): RouteSavedDTO[]
 }
 
-' Relaciones
-Client -down-> PlanRouteFacade
+class RouteService {
+    + requestRoute(options): Promise<IRouteData>
+    + saveRoute(options): Promise<string>
+}
 
-' Relaciones con el subsistema (usando líneas punteadas para mostrar dependencia)
-PlanRouteFacade .down.> PlaceService
-PlanRouteFacade .down.> RouteService
-PlanRouteFacade .left.> MobilityMethodService
-PlanRouteFacade .right.> LocationService
+class UserPreferencesService {
+    + get(userId): Promise<UserPreferences>
+}
+
+interface CostEstimatorGateway {
+    + getLatestPrices(): Promise<PriceSnapshot>
+}
+
+class EnergyPriceGateway
+
+RouteViewModel --> RouteFacade : capa ViewModel usa fachada
+RouteFacade --> RouteService : delega cálculos/persistencia
+RouteFacade --> UserPreferencesService : carga preferencias
+RouteFacade --> CostEstimatorGateway : solicita precios energía
+CostEstimatorGateway <|.. EnergyPriceGateway : implementación usada por defecto
 
 
 @enduml

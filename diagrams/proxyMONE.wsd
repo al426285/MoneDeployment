@@ -1,33 +1,34 @@
-@startuml proxy
+@startuml proxyMONE
 !theme plain
 skinparam linetype ortho
 
-class Client
-
-interface RouteService <<interface>> {
-  getRoute(start: string, end: string, mobility: string, type: string): Route
+class RouteService {
+  - provider: IRouteProvider
+  + requestRoute(origin, destination, mobilityType, routeType): Promise<IRouteData>
 }
 
-class RouteProxy{
-  - realService: OpenRouteService
+interface IRouteProvider <<interface>> {
+  + getRoute(origin: string, destination: string, mobilityType: string, routeType: string): Promise<Route>
+}
+
+class RouteProxy {
   - cache: Map<string, Route>
-  + getRoute(start: string, end: string, mobility: string, type: string): Route
-  + calculateAndSaveOtherTypesRoutesOnCache(start: string, end: string, mobility: string, type: string): void
+  - realProvider: IRouteProvider
+  + getRoute(origin: string, destination: string, mobilityType: string, routeType: string): Promise<Route>
 }
 
-class OpenRouteService{
-  + getRoute(start: string, end: string, mobility: string, type: string): Route 
+class OpenRouteServiceAdapter {
+  + getRoute(...): Promise<Route>
 }
+class Route
 
-
-' Realizaciones (implementación de la interfaz)
-RouteService <|.. RouteProxy
-RouteService <|.. OpenRouteService
-
-' Agregación: Proxy tiene referencia a Service
-RouteProxy o--> OpenRouteService
-
-Client -> RouteService
+RouteService --> IRouteProvider : depende de la interfaz
+IRouteProvider <|.. RouteProxy
+IRouteProvider <|.. OpenRouteServiceAdapter
+RouteProxy *--> IRouteProvider : referencia al real provider
+RouteProxy ..> Route : responde desde caché
+OpenRouteServiceAdapter ..> Route : crea entidades
+RouteProxy --> OpenRouteServiceAdapter : realProvider
 
 
 @enduml

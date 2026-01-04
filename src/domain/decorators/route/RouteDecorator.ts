@@ -11,7 +11,7 @@ export abstract class RouteDecorator implements IRouteData {
   getSteps(): string[] { return this.route.getSteps(); }
   getMobilityType(): string { return this.route.getMobilityType(); }
   getRouteType(): string { return this.route.getRouteType(); }
-  getConsumptionPer100Km(): number | null { return this.route.getConsumptionPer100Km(); }
+  getConsumptionValue(): number | null { return this.route.getConsumptionValue(); }
   getConsumptionUnit(): ConsumptionUnit | null { return this.route.getConsumptionUnit(); }
   getPolyline(): Array<[number, number]> | null { return this.route.getPolyline(); }
 }

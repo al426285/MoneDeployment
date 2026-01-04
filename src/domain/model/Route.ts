@@ -82,7 +82,7 @@ export class Route implements IRouteData {
     return this.steps;
   }
 
-  getConsumptionPer100Km(): number | null {
+  getConsumptionValue(): number | null {
     return this.consumptionPer100Km;
   }
 

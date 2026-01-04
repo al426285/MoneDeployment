@@ -86,15 +86,15 @@ export interface IRouteData {
   getSteps(): string[];
 
   /**
-   * Consumo medio expresado por cada 100 km.
-   * - Debe devolver L/100km para combustión o kWh/100km para eléctrico.
+   * Valor de consumo expresado en la unidad indicada por getConsumptionUnit().
+   * - Puede representar L/100km, km/L, kWh/100km, km/kWh o kcal/min según movilidad.
    * - Si no hay estimación, devolver null.
    */
-  getConsumptionPer100Km(): number | null;
+  getConsumptionValue(): number | null;
 
   /**
-   * Unidad asociada a getConsumptionPer100Km().
-   * - Usa ConsumptionUnit (l_per_100km | km_per_l | kwh_per_100km | km_per_kwh)
+   * Unidad asociada al consumo devuelto por getConsumptionValue().
+   * - Usa ConsumptionUnit (l/100km | km/l | kwh/100km | km/kwh | kcal/min)
    * - Puede ser null si no aplica o no está disponible.
    */
   getConsumptionUnit(): ConsumptionUnit | null;

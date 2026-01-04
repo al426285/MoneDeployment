@@ -1,0 +1,42 @@
+@startuml factoryMONE
+!theme plain
+skinparam linetype ortho
+
+class VehicleService {
+  + registerVehicle(ownerId, type, name, fuelType?, consumption?): void
+  + editVehicle(ownerId, vehicleName, updates): Vehicle
+}
+
+class VehicleFactory {
+  + createVehicle(type: string, name: string, fuelType?: FuelType, consumption?: number, favorite?: boolean): Vehicle
+}
+
+interface Vehicle <<interface>> {
+  + name: string
+  + type: string
+  + fuelType: FuelType | null
+  + consumption: Consumption
+  + mostrarInfo(): void
+}
+
+class Bike
+class Walking
+class ElectricCar
+class FuelCar
+
+class VehicleRepositoryFirebase {
+  + saveVehicle(ownerId: string, vehicle: Vehicle): Promise<void>
+  + updateVehicle(ownerId: string, vehicleName: string, vehicle: Vehicle): Promise<void>
+}
+
+VehicleService --> VehicleFactory : solicita instancias concretas
+VehicleFactory --> Vehicle : devuelve objetos construidos
+Vehicle <|.. Bike
+Vehicle <|.. Walking
+Vehicle <|.. ElectricCar
+Vehicle <|.. FuelCar
+VehicleService --> VehicleRepositoryFirebase : persiste vehículos creados
+
+
+
+@enduml

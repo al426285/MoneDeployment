@@ -1,90 +1,53 @@
-@startuml composite
+@startuml compositeMONE
 !theme plain
 skinparam linetype ortho
 
-class Client
-
-interface MobilityMethodComponent <<interface>> {
-	+ getName(): string
-	+ getType(): string
-    + getEnergyType(): string
-    + getAverageConsumption(): number
-    + getMobilityMethod(): string
+class VehicleFactory {
+  + createVehicle(type: string, name: string, fuelType?: FuelType, consumption: number, favorite?: boolean): Vehicle
 }
 
-
-class GasolineVehicle{
-  - name: string
-  - type: string
-  - energyType: string
-  - averageConsumption: number
-  - mobilityMethod: string
-
-}
-class DieselVehicle{
-  - name: string
-  - type: string
-  - energyType: string
-  - averageConsumption: number
-  - mobilityMethod: string
+interface Vehicle <<interface>> {
+  + name: string
+  + type: string
+  + fuelType: FuelType | null
+  + consumption: Consumption
+  + mostrarInfo(): void
 }
 
-class Bike{
-  - name: string
-  - type: string
-  - energyType: string
-  - averageConsumption: number
-  - mobilityMethod: string
-}
-class Walking{
-  - name: string
-  - type: string
-  - energyType: string
-  - averageConsumption: number
-  - mobilityMethod: string
+class Bike {
+  + consumption: Consumption (kcal/min)
 }
 
-class ElectricVehicle{
-  - name: string
-  - type: string
-  - energyType: string
-  - averageConsumption: number
-  - mobilityMethod: string
+class Walking {
+  + consumption: Consumption (kcal/min)
 }
 
-
-class MobilityMethods {
-	- mobilityMethods: List<MobilityMethodComponent>
-	+ add(m: MobilityMethodComponent)
-	+ remove(m: MobilityMethodComponent)
-	+ getType(): string 
-	+ getEnergyType(): string
-	+ getAverageConsumption(): number
-	+ getMobilityMethod(): string
-	+ getElectricCars(): MobilityMethodComponent[]
-	+ getDieselCars(): MobilityMethodComponent[]
-	+ getGasolineCars(): MobilityMethodComponent[]
-	+ getVehicles(): MobilityMethodComponent[]
-	+ getBicycles(): MobilityMethodComponent[]
-	+ getWalking(): MobilityMethodComponent[]
-	+ getName(): string
+class ElectricCar {
+  + consumption: Consumption (kWh/100km)
 }
 
-' Relaciones: Client usa Component
-Client -down-> MobilityMethodComponent
+class FuelCar {
+  + consumption: Consumption (L/100km)
+}
 
-' Implementaciones
-MobilityMethodComponent <|.. GasolineVehicle
-MobilityMethodComponent <|.. DieselVehicle
-MobilityMethodComponent <|.. Bike
-MobilityMethodComponent <|-left-. Walking
-MobilityMethodComponent <|.. ElectricVehicle
-MobilityMethodComponent <|.. MobilityMethods
+enum FuelType {
+  gasoline
+  diesel
+  electric
+}
 
+VehicleFactory --> Vehicle : crea instancias concretas
+Vehicle <|.. Bike
+Vehicle <|.. Walking
+Vehicle <|.. ElectricCar
+Vehicle <|.. FuelCar
 
-' Agregación: Composite contiene Component
-MobilityMethods o-> MobilityMethodComponent
-
+note bottom of VehicleFactory
+  El repositorio no implementa un árbol Composite;
+  la jerarquía de movilidad se modela con un Factory Method
+  que devuelve clases concretas de Vehicle.
+  (src/domain/model/VehicleFactory.ts)
+end note
 
 @enduml
 

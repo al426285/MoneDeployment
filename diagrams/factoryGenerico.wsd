@@ -1,0 +1,39 @@
+@startuml factory_generico
+!theme plain
+skinparam linetype ortho
+
+interface Product {
+	+ operation(): void
+}
+
+class ConcreteProductA {
+	+ operation(): void
+}
+
+class ConcreteProductB {
+	+ operation(): void
+}
+
+abstract class Creator {
+	+ templateMethod(): void
+	# createProduct(): Product
+}
+
+class ConcreteCreatorA {
+	# createProduct(): Product
+}
+
+class ConcreteCreatorB {
+	# createProduct(): Product
+}
+
+Product <|.. ConcreteProductA
+Product <|.. ConcreteProductB
+Creator <|-- ConcreteCreatorA
+Creator <|-- ConcreteCreatorB
+Creator --> Product : usa objetos fabricados
+ConcreteCreatorA --> ConcreteProductA : instancia
+ConcreteCreatorB --> ConcreteProductB : instancia
+
+
+@enduml

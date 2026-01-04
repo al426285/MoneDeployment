@@ -20,8 +20,8 @@ export class ConsumptionUnitDecorator extends RouteDecorator {
     super(route);
   }
 
-  getConsumptionPer100Km(): number | null {
-    const baseValue = this.route.getConsumptionPer100Km();
+  getConsumptionValue(): number | null {
+    const baseValue = this.route.getConsumptionValue();
     const baseUnit = this.route.getConsumptionUnit();
     if (baseValue == null || baseUnit == null) return null;
 

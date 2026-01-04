@@ -1,13 +1,21 @@
-@startuml singleton
+@startuml singletonMONE
 !theme plain
-skinparam linetype ortho 
-class UserService {
-    - instance : UserService
-    + UserService()
-    + getInstance() : UserService
+skinparam linetype ortho
+
+class RouteService {
+    - static instance: RouteService
+    - constructor(deps?: RouteServiceDeps)
+    + static getInstance(deps?: RouteServiceDeps): RouteService
+    + requestRoute(options): Promise<IRouteData>
+    + saveRoute(options): Promise<string>
 }
 
-class Client
+class RouteFacade {
+    - service: RouteService
+    + constructor(deps?)
+    + requestRoute(...)
+}
 
-Client --> UserService
+RouteFacade --> RouteService : usa RouteService.getInstance()
+
 @enduml

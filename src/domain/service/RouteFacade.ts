@@ -92,7 +92,7 @@ export class RouteFacade {
 
         const canonicalConsumption =
             this.normalizeConsumption(plannerOptions.estimatedConsumption) ??
-            this.canonicalizeConsumption(rawRoute.getConsumptionPer100Km(), rawRoute.getConsumptionUnit());
+            this.canonicalizeConsumption(rawRoute.getConsumptionValue(), rawRoute.getConsumptionUnit());
 
         const routeProps: RouteProps = {
             origin: plannerOptions.origin,
@@ -365,7 +365,7 @@ export class RouteFacade {
             steps: route.getSteps(),
             cost: route.getCost(),
             currency: route.getCostCurrency(),
-            consumptionPer100Km: route.getConsumptionPer100Km(),
+            consumptionPer100Km: route.getConsumptionValue(),
             consumptionUnit: route.getConsumptionUnit(),
             polyline: route.getPolyline(),
         };
