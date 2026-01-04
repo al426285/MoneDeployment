@@ -773,12 +773,12 @@ export default function RouteDetails() {
 
   return (
     <section className="place-row">
-      <aside className="place-card default-container with-border">
+      <aside className="place-card default-container with-border route-details-card">
         <BackButton label="Back" style={{ marginBottom: "0.25rem" }} />
         <h2 className="card-title">
           Route details {searchMeta?.label ? <span>· {searchMeta.label}</span> : null}
         </h2>
-        <div className="stack" style={{ marginTop: "1.5rem" }}>
+        <div className="stack route-section route-meta">
           <p>
             <strong>Origin:</strong> {resolvedOriginLabel}
             {searchMeta?.origin ? <span> - ({searchMeta.origin})</span> : null}
@@ -789,27 +789,26 @@ export default function RouteDetails() {
           </p>
         </div>
 
-        <div className="stats-grid">
-          <div>
-            <strong>Distance: </strong>
+        <div className="route-stats-grid">
+          <div className="route-stat">
+            <p className="label">Distance</p>
             <p className="value">{formatDistance(route?.distance, route?.distanceUnit)}</p>
           </div>
-          <div>
-            <strong>Duration: </strong>
+          <div className="route-stat">
+            <p className="label">Duration</p>
             <p className="value">{formatDuration(route?.duration)}</p>
           </div>
-          <div>
-            <strong>Estimated cost: </strong>
+          <div className="route-stat">
+            <p className="label">Estimated cost</p>
             <p className="value">{resolvedCostDisplay}</p>
           </div>
-          <div>
-            <strong>Consumption: </strong>
+          <div className="route-stat">
+            <p className="label">Consumption</p>
             <p className="value">{resolvedConsumptionDisplay}</p>
           </div>
         </div>
 
-
-        <div className="stack" style={{ marginBottom: "1.5rem" }}>
+        <div className="stack route-section route-controls">
           <div className="form-row">
             <label htmlFor="name">Mobility method</label>
             <MobilitySelector value={selectedMobility} onChange={handleMobilityChange} />
@@ -833,7 +832,7 @@ export default function RouteDetails() {
           {rerouteError && <p className="error-text">{rerouteError}</p>}
         </div>
 
-        <div style={{ display: "flex", gap: "0.6rem", marginTop: "1.25rem" }}>
+        <div className="route-actions">
           {isSavedRouteDetail ? (
             <button type="button" className="btn" onClick={goBackToList}>
               Back
@@ -856,7 +855,7 @@ export default function RouteDetails() {
           )}
         </div>
 
-        {saveError && <p className="error-text" style={{ marginTop: "0.75rem" }}>{saveError}</p>}
+        {saveError && <p className="error-text route-error">{saveError}</p>}
       </aside>
 
       <main className="map-panel">
