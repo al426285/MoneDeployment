@@ -9,7 +9,7 @@ import React from "react";
 export default function MobilitySelector({ value = "vehicle", onChange, options }) {
   const opts = options ?? [
     { key: "vehicle", label: "Vehicle", icon: "../../resources/iconVehicle.png" },
-    { key: "bike", label: "Bike", icon: "../../resources/iconBicicle.png" },
+    { key: "bike", label: "Bicycle", icon: "../../resources/iconBicycle.png" },
     { key: "walk", label: "Walking", icon: "../../resources/iconWalking.png" },
   ];
 

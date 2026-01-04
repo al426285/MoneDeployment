@@ -711,12 +711,20 @@ export default function RouteDetails() {
   );
 
   const handlePromptAndSave = useCallback(async () => {
+    const customClass = {
+      confirmButton: "my-confirm-btn",
+      cancelButton: "my-cancel-btn",
+      input: "my-input",
+      actions: "mone-swal-actions",
+    };
+
     const { value, isConfirmed } = await CustomSwal.fire({
       title: "Save Route",
       input: "text",
       inputLabel: "Route name",
       inputPlaceholder: "E.g. Home to Work",
       inputValue: searchMeta?.label ?? "",
+      customClass,
       showCancelButton: true,
       confirmButtonText: "Save Route",
       cancelButtonText: "Cancel",

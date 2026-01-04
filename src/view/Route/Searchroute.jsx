@@ -46,7 +46,6 @@ const [prefs] = useState(null);
   };
   loadPrefs();
   }, []);
-  const [routeLabel, setRouteLabel] = useState("");
   const [mobility, setMobility] = useState(prefs?.transportMode ?? "vehicle"); //aqui inicial
   const [routeType, setRouteType] = useState(prefs?.routeType ?? "fastest");
   const [origin, setOrigin] = useState(() => createLocationState());
@@ -245,7 +244,6 @@ const [prefs] = useState(null);
         mobilityType: mobility,
         routeType,
         userId: user?.uid,
-        name: routeLabel,
       });
 
       const resolvedPolyline = Array.isArray(response?.route?.polyline) ? response.route.polyline : null;
@@ -268,7 +266,6 @@ const [prefs] = useState(null);
         state: {
           routePlan: response,
           searchMeta: {
-            label: routeLabel?.trim() || undefined,
             origin: normalizedOrigin,
             destination: normalizedDestination,
             originLabel,
@@ -286,7 +283,6 @@ const [prefs] = useState(null);
   const handleReset = () => {
     setOrigin(createLocationState());
     setDestination(createLocationState());
-    setRouteLabel("");
     setPolyline([]);
     setCenter(DEFAULT_CENTER);
     setLocalError("");
@@ -316,17 +312,6 @@ const [prefs] = useState(null);
         <form onSubmit={handleSubmit} className="stack">
           {renderLocationField("origin", "Origin", origin)}
           {renderLocationField("destination", "Destination", destination)}
-
-          <div className="form-row">
-            <label htmlFor="routeLabel">Route label (optional)</label>
-            <input
-              id="routeLabel"
-              type="text"
-              placeholder="Morning commute"
-              value={routeLabel}
-              onChange={(event) => setRouteLabel(event.target.value)}
-            />
-          </div>
 
           <div className="form-row">
             <label>Mobility method</label>

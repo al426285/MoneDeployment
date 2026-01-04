@@ -63,7 +63,7 @@ export default function VehiclesPage() {
   const getVehicleImage = (vehicle) => {
     switch (vehicle.type) {
       case "Bike":
-        return "../../../resources/iconBicicle.png";
+        return "../../../resources/iconBicycle.png";
       case "Walking":
         return "../../../resources/iconWalking.png";
       default:
@@ -93,7 +93,7 @@ export default function VehiclesPage() {
 
           <select id="addType" class="my-select" style="margin-top: 1rem;">
             <option value="" disabled ${!wizardFormStateRef.current.type ? "selected" : ""}>Select type</option>
-            <option value="bike" ${wizardFormStateRef.current.type === "bike" ? "selected" : ""}>Bike</option>
+            <option value="bike" ${wizardFormStateRef.current.type === "bike" ? "selected" : ""}>Bicycle</option>
             <option value="walking" ${wizardFormStateRef.current.type === "walking" ? "selected" : ""}>Walking</option>
             <option value="car" ${wizardFormStateRef.current.type === "car" ? "selected" : ""}>Vehicle</option>
           </select>
@@ -551,7 +551,7 @@ export default function VehiclesPage() {
       </section>
 
       <section className="list-section">
-        <h2 className="section-title">Bikes</h2>
+        <h2 className="section-title">Bicycles</h2>
         <ul className="item-list">{renderList(bikes)}</ul>
       </section>
 
