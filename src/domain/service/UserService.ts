@@ -412,10 +412,12 @@ export class UserService {
     if (!email || !isValidEmail(email)) {
       throw new Error("InvalidDataException");
     }
-    const existing = await this.userRepository.getUserByEmail(email);
-    if (!existing) throw new Error("UserNotFound");
+    const normalizedEmail = email.trim();
+    const existing = await this.userRepository.getUserByEmail(normalizedEmail);
+    const targetEmail = existing?.getEmail?.() ?? normalizedEmail;
+
     try {
-      await this.authProvider.sendRecoveryEmail(email);
+      await this.authProvider.sendRecoveryEmail(targetEmail);
     } catch (error) {
       handleAuthError(error as FirebaseError);
     }

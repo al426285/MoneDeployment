@@ -17,7 +17,7 @@ export const RecuperarContraseña = () => {
           <p className="recover-eyebrow">Account access</p>
           <h1>Recover password</h1>
           <p className="recover-subtitle">
-            Introduce tu email y te enviaremos un enlace seguro para restablecer tu contraseña.
+            Enter your email and we will send you a secure link to reset your password.
           </p>
         </header>
 
