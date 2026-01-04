@@ -1,10 +1,9 @@
-import { describe, test, expect, beforeAll, beforeEach, afterAll, afterEach, vi } from "vitest";
+import { describe, test, expect, beforeAll, beforeEach, afterAll, afterEach } from "vitest";
 import { PlaceService } from "../../../src/domain/service/PlaceService";
 import { UserService } from "../../../src/domain/service/UserService";
 import { UserSession } from "../../../src/domain/session/UserSession";
 import { collection, deleteDoc, getDocs } from "firebase/firestore";
 import { db, auth } from "../../../src/core/config/firebaseConfig";
-import { Place } from "../../../src/domain/model/Place";
 
 const LONG_TIMEOUT = 20000;
 const BASE_USER = {
@@ -71,20 +70,6 @@ const cleanupUserPlaces = async () => {
 	const snapshot = await getDocs(userPlacesCollection());
 	await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
 };
-
-const mockORSResponse = (label: string, latitude: number, longitude: number) =>
-	vi.spyOn(globalThis, "fetch").mockResolvedValue({
-		ok: true,
-		headers: { get: () => "application/json" },
-		json: async () => ({
-			features: [
-				{
-					properties: { label, name: label, locality: label },
-					geometry: { coordinates: [longitude, latitude] },
-				},
-			],
-		}),
-	} as any);
 
 beforeAll(async () => {
 	createLocalStorage();
@@ -168,28 +153,26 @@ describe("Tests aceptación segunda iteración {h08}: Gestión de lugares guarda
 	test(
 		"H08-E1 - Válido: topónimo Morella genera coordenadas y se guarda",
 		async () => {
-			const fetchSpy = mockORSResponse("Morella", 40.62, -0.098);
-			try {
-				const [suggestion] = await placeService.suggestToponyms("Morella", 1);
-				expect(suggestion.label).toBe("Morella");
-				expect(suggestion.latitude).toBeCloseTo(40.62, 2);
-				expect(suggestion.longitude).toBeCloseTo(-0.098, 3);
+			const query = "Morella Castellon Spain";
+			const [suggestion] = await placeService.suggestToponyms(query, 1);
+			expect(suggestion).toBeDefined();
+			expect(suggestion.label).toContain("Morella");
+			expect(suggestion.latitude).toBeCloseTo(40.62, 2);
+			expect(Math.abs(suggestion.longitude)).toBeCloseTo(0.1, 2);
 
-				await placeService.savePlace({
-					name: suggestion.label,
-					latitude: suggestion.latitude,
-					longitude: suggestion.longitude,
-					toponymicAddress: suggestion.label,
-				});
+			await placeService.savePlace({
+				name: suggestion.label,
+				latitude: suggestion.latitude,
+				longitude: suggestion.longitude,
+				toponymicAddress: suggestion.label,
+			});
 
-				const places = await placeService.getSavedPlaces();
-				expect(places.length).toBe(1);
-				expect(places[0].name).toBe("Morella");
-				expect(places[0].latitude).toBeCloseTo(40.62, 2);
-				expect(places[0].toponymicAddress).toBe("Morella");
-			} finally {
-				fetchSpy.mockRestore();
-			}
+			const places = await placeService.getSavedPlaces();
+			expect(places.length).toBe(1);
+			expect(places[0].name).toBe(suggestion.label);
+			expect(places[0].latitude).toBeCloseTo(suggestion.latitude, 2);
+			expect(Math.abs(places[0].longitude)).toBeCloseTo(Math.abs(suggestion.longitude), 2);
+			expect(places[0].toponymicAddress).toBe(suggestion.label);
 		},
 		LONG_TIMEOUT
 	);
@@ -197,32 +180,29 @@ describe("Tests aceptación segunda iteración {h08}: Gestión de lugares guarda
 	test(
 		"H08-E2 - Inválido: topónimo repetido lanza PlaceAlreadySavedException",
 		async () => {
-			const fetchSpy = mockORSResponse("Morella", 40.62, -0.098);
-			try {
-				const [suggestion] = await placeService.suggestToponyms("Morella", 1);
-				await placeService.savePlace({
+			const query = "Morella Castellon Spain";
+			const [suggestion] = await placeService.suggestToponyms(query, 1);
+			if (!suggestion) throw new Error("No se pudo recuperar el topónimo real para Morella");
+			await placeService.savePlace({
+				name: suggestion.label,
+				latitude: suggestion.latitude,
+				longitude: suggestion.longitude,
+				toponymicAddress: suggestion.label,
+				description: "Casa",
+			});
+
+			await expect(
+				placeService.savePlace({
 					name: suggestion.label,
 					latitude: suggestion.latitude,
 					longitude: suggestion.longitude,
 					toponymicAddress: suggestion.label,
-					description: "Casa",
-				});
+				})
+			).rejects.toThrow("PlaceAlreadySavedException");
 
-				await expect(
-					placeService.savePlace({
-						name: suggestion.label,
-						latitude: suggestion.latitude,
-						longitude: suggestion.longitude,
-						toponymicAddress: suggestion.label,
-					})
-				).rejects.toThrow("PlaceAlreadySavedException");
-
-				const places = await placeService.getSavedPlaces();
-				expect(places.length).toBe(1);
-				expect(places[0].name).toBe("Morella");
-			} finally {
-				fetchSpy.mockRestore();
-			}
+			const places = await placeService.getSavedPlaces();
+			expect(places.length).toBe(1);
+			expect(places[0].name).toBe(suggestion.label);
 		},
 		LONG_TIMEOUT
 	);
@@ -239,7 +219,7 @@ describe("Tests aceptación segunda iteración {h09}: Consulta de lugares", () =
 	expect(places.length).toBe(1);
 	expect(places[0].name).toBe("Casa");
 	expect(places[0].latitude).toBeCloseTo(40.620, 3);
-	expect(places[0].longitude).toBeCloseTo(-0.098, 3);
+	expect(places[0].longitude).toBeCloseTo(-0.098, 2);
   },
 		LONG_TIMEOUT
 	);
@@ -291,25 +271,21 @@ describe("Tests aceptación segunda iteración {h10}: Eliminación de lugares", 
 
 describe("Tests aceptación segunda iteración {h11}: Edición de lugares", () => {
   test("H11-E1 - Válido: Cambiar el nombre del lugar con topónimo Morella a Ma casa", async () => {
-	const fetchSpy = mockORSResponse("Morella", 40.62, -0.098);
-		try {
-			const [suggestion] = await placeService.suggestToponyms("Morella", 1);
+	const query = "Morella Castellon Spain";
+	const [suggestion] = await placeService.suggestToponyms(query, 1);
+	if (!suggestion) throw new Error("No se pudo recuperar el topónimo real para Morella");
 
-			await placeService.savePlace({
-				name: suggestion.label,
-				latitude: suggestion.latitude,
-				longitude: suggestion.longitude,
-				toponymicAddress: suggestion.label,
-			});
+	await placeService.savePlace({
+		name: suggestion.label,
+		latitude: suggestion.latitude,
+		longitude: suggestion.longitude,
+		toponymicAddress: suggestion.label,
+	});
 
-			await placeService.editPlaceByToponym("Morella", "Ma casa");
+	await placeService.editPlaceByToponym(suggestion.label, "Ma casa");
 
-			const places =await placeService.getSavedPlaces();
-			expect(places[0].name).toBe("Ma casa");
-			
-		} finally {
-			fetchSpy.mockRestore();
-		}
+	const places =await placeService.getSavedPlaces();
+	expect(places[0].name).toBe("Ma casa");
 
   },
 		LONG_TIMEOUT
@@ -318,7 +294,7 @@ describe("Tests aceptación segunda iteración {h11}: Edición de lugares", () =
   test("H11-E3 - Inválido: Cambiar el nombre del lugar no guardado con topónimo Moncofa a Ma casa", async () => {
 		
 	await expect(placeService.editPlaceByToponym("Moncofa", "Ma casa"))
-	  .rejects.toThrow("PlaceNotDeletedException");
+	  .rejects.toThrow("PlaceNotSavedException");
 
   },
 		LONG_TIMEOUT

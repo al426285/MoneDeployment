@@ -237,34 +237,29 @@ export const useRouteViewmodel = (): RouteViewmodelState => {
   const unit = normalized.unit ?? "";
   const type = (vehicle.type ?? "").toLowerCase();
 
-  console.log("eoooooooooo ", type);
   if ((type === "fuelcar" || type === "fuel car") && distanceKm != null && priceSnapshot) {
     //normalized value es el consumo en l/100km
-    console.log("aqui", route.distance, normalized.value);
+    
     const liters = (distanceKm / 100) * normalized.value;
     const fuelType = (vehicle.fuelType ?? "gasoline").toLowerCase();
     const dieselPrice = priceSnapshot.dieselPerLiter;
-    console.log("diesel price", dieselPrice);
+   
     const gasolinePrice = priceSnapshot.gasolinePerLiter;
     let fuelPrice;
 
-    console.log("tioooo", fuelType);
+   
     if (fuelType === "diesel") {
       // "??"" le dice que si por lo que sea es undefined use la otra
       fuelPrice = dieselPrice ?? gasolinePrice;
-      console.log("dieseeel", fuelPrice);
 
     } else {
       fuelPrice = gasolinePrice ?? dieselPrice;
-      console.log("gasofaa", fuelPrice);
 
     }
-    console.log("fuel price", fuelPrice);
-    const currency = priceSnapshot.currency ?? "EUR";
-    console.log("currency", currency);
-    console.log("liters", liters);
-    console.log("fuelprice", fuelPrice);
-    console.log("final", liters * fuelPrice);
+
+	const currency = priceSnapshot.currency ?? "EUR";
+   
+
     if (Number.isFinite(liters) && Number.isFinite(fuelPrice)) {
       return formatCost(liters * fuelPrice, currency);
     }

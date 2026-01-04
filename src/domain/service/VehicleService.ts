@@ -56,7 +56,7 @@ export class VehicleService {
         if (explicit) return explicit;
         const session = UserSession.loadFromCache();
         if (session?.userId) return session.userId;
-        throw new Error("UserNotFound: User session not found. Provide an explicit userId or ensure the session is logged in.");
+        throw new Error("UserNotFound");
     }
 
 

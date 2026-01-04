@@ -236,7 +236,7 @@ export default function NewPlace() {
             <input
               id="description"
               type="text"
-              placeholder="Add a description of the place"
+              placeholder="Add a description of the place (optional)"
               value={placeInfo.description}
               onChange={(e) => onDescriptionChange(e.target.value)}
             />

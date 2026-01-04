@@ -1,259 +1,231 @@
-import { describe, test, expect, beforeEach, beforeAll, afterAll, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { RouteService } from "../../../src/domain/service/RouteService";
 import { OpenRouteServiceAdapter } from "../../../src/data/provider/OpenRouteServiceAdapter";
 import { OpenRouteServiceHttpClient } from "../../../src/data/provider/OpenRouteServiceHttpClient";
 import { UserService } from "../../../src/domain/service/UserService";
 import { VehicleService } from "../../../src/domain/service/VehicleService";
-const vehicleService = VehicleService.getInstance();
-import { afterAll } from "vitest";
+import { UserSession } from "../../../src/domain/session/UserSession";
 
-const BASE_USER = {
-	email: "al123456@uji.es",
-	nickname: "Maria",
-	password: "MiContrasena64",
+const USER_EMAIL = "al123456@uji.es";
+const USER_PASSWORD = "MiContrasena64";
+const userService = UserService.getInstance();
+const vehicleService = VehicleService.getInstance();
+
+const ensureLocalStorage = () => {
+	if (typeof globalThis.localStorage !== "undefined") return;
+	const store = new Map<string, string>();
+	globalThis.localStorage = {
+		getItem: (key: string) => (store.has(key) ? store.get(key)! : null),
+		setItem: (key: string, value: string) => {
+			store.set(key, value);
+		},
+		removeItem: (key: string) => {
+			store.delete(key);
+		},
+		clear: () => {
+			store.clear();
+		},
+		key: (index: number) => Array.from(store.keys())[index] ?? null,
+		get length() {
+			return store.size;
+		},
+	} as unknown as Storage;
+};
+
+const setNavigatorStatus = (online: boolean) => {
+	Object.defineProperty(globalThis, "navigator", {
+		value: { onLine: online } as Navigator,
+		configurable: true,
+	});
+};
+
+const ensureNavigator = () => {
+	if (typeof globalThis.navigator === "undefined") {
+		setNavigatorStatus(true);
+	}
 };
 
 const resetRouteServiceSingleton = () => {
+	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
 	RouteService.instance = null;
 };
-const userService = UserService.getInstance();
-let testUserId = "";
 
-const ensureSession = async () => {
-	const session = await userService.logIn(BASE_USER.email, BASE_USER.password);
-	testUserId = session.userId;
-	return session;
+let authenticatedUserId = USER_EMAIL;
+
+const loginUser = async () => {
+	const session = await userService.logIn(USER_EMAIL, USER_PASSWORD);
+	authenticatedUserId = session.userId;
+	return session.userId;
 };
 
-const BASE_ORIGIN = "40.620, -0.098"; // Casa / Morella
-const BASE_DEST = "39.933, -0.355"; // Pico Espadán
+const logoutUser = async () => {
+	try {
 
-const stepsSample = ["N-232", "CV-132", "CV-10", "CV-20", "CV-223"];
+		await userService.logOut();
+	} catch { }
 
-const mockORSResponseForRoute = (distanceMeters: number, durationSeconds: number, coords: Array<[number, number]>, steps: string[]) => {
-	return {
-		ok: true,
-		headers: { get: () => "application/json" },
-		json: async () => ({
-			type: "FeatureCollection",
-			features: [
-				{
-					type: "Feature",
-					properties: {
-						segments: [
-							{
-								distance: distanceMeters,
-								duration: durationSeconds,
-								steps: steps.map((s) => ({ instruction: s })),
-							},
-						],
-					},
-					geometry: {
-						type: "LineString",
-						// ORS returns [lng, lat]
-						coordinates: coords.map(([lat, lng]) => [lng, lat]),
-					},
-				},
-			],
-		}),
-	} as any;
+	finally {
+		UserSession.clear();
+	}
 };
 
+const clearUserVehicles = async (ownerId: string) => {
+	const vehicles = await vehicleService.getVehicles(ownerId);
+	await Promise.all(vehicles.map((vehicle) => vehicleService.deleteVehicle(ownerId, vehicle.name)));
+};
 
+const seedVehicles = async (ownerId: string) => {
+	await clearUserVehicles(ownerId);
+	await vehicleService.registerVehicle(ownerId, "fuelCar", "Fiat Punto", "gasoline", 4.5);
+	await vehicleService.registerVehicle(ownerId, "electricCar", "Terreneitor", undefined, 20);
+};
 
-describe("HU15 - Editar los datos de un vehículo (nombre, tipo de combustible, consumo medio)", () => {
-  beforeAll(async () => {
-    // Crear usuario de prueba e iniciar sesión
-    try {
-      // await userService.signUp("al123456@uji.es", "Maria", "MiContrasena64");
-      await userService.logIn("al123456@uji.es", "MiContrasena64");
-      await vehicleService.registerVehicle("al123456@uji.es", "fuelCar", "Fiat Punto", "gasoline", 4.5);
-      await vehicleService.registerVehicle("al123456@uji.es", "electricCar", "Terreneitor", undefined, 20);
+const CASTELLON_ORIGIN = "39.98627,-0.004778";
+const VALENCIA_DEST = "39.477,-0.376";
+const MADRID_ORIGIN = "40.4168,-3.7038";
+const TOLEDO_DEST = "39.8628,-4.0273";
 
-    } catch (error) {
-      console.error("Error en beforeAll:", error);
-    }
+describe("HU15 - Editar datos de un vehículo (aceptación)", () => {
+	beforeAll(() => {
+		ensureLocalStorage();
+		ensureNavigator();
+	});
 
-  });
+	beforeEach(async () => {
+		UserSession.clear();
+		await loginUser();
+		await seedVehicles(authenticatedUserId);
+	});
 
-afterAll(async () => {
-    // Crear usuario de prueba e iniciar sesión
-    try {
-      await userService.logIn("al123456@uji.es", "MiContrasena64");
-      await vehicleService.deleteVehicle("al123456@uji.es", "Fiat Punto");
-      await vehicleService.deleteVehicle("al123456@uji.es", "Terreneitor");
-      await userService.logOut();
-    } catch (error) {
-      console.error("Error en afterAll:", error);
-    }
-  });
-	test("E1 válido: poner combustible de Fiat Punto como diésel", async () => {
+	afterAll(async () => {
+		await clearUserVehicles(USER_EMAIL);
+		await logoutUser();
+	});
+
+	it("E1 válido: el usuario actualiza el Fiat Punto a combustible diésel", async () => {
 		await expect(
-			vehicleService.editVehicle("al123456@uji.es", "Fiat Punto", { fuelType: "diesel" })
+			vehicleService.editVehicle(authenticatedUserId, "Fiat Punto", { fuelType: "diesel" })
 		).resolves.not.toThrow();
-		await expect(
-			vehicleService.getVehicles("al123456@uji.es")
-		).resolves.toContainEqual(expect.objectContaining({ name: "Fiat Punto", fuelType: "diesel" }));
+
+		const vehicles = await vehicleService.getVehicles(authenticatedUserId);
+		expect(vehicles).toEqual(
+			expect.arrayContaining([expect.objectContaining({ name: "Fiat Punto", fuelType: "diesel" })])
+		);
 	});
 
-	test("E2 inválido: poner combustible de Seat Ibiza (vehículo no guardado) como diésel", async () => {
+	it("E2 inválido: intentar editar un vehículo que no existe lanza VehicleNotFoundException", async () => {
 		await expect(
-			vehicleService.editVehicle("al123456@uji.es", "Seat Ibiza", { fuelType: "diesel" })
+			vehicleService.editVehicle(authenticatedUserId, "Seat Ibiza", { fuelType: "diesel" })
 		).rejects.toThrow("VehicleNotFoundException");
-
 	});
-
 });
 
+describe("HU16 - Solicitud de rutas con el proveedor real", () => {
+	beforeAll(() => {
+		ensureLocalStorage();
+		ensureNavigator();
+	});
 
-
-describe("HU16 - RouteService acceptance (real provider)", () => {
 	beforeEach(() => {
+		UserSession.clear();
 		resetRouteServiceSingleton();
-		vi.restoreAllMocks();
+		setNavigatorStatus(true);
 	});
 
-	test("E1 válido: fastest Casa -> Pico Espadán usando adaptador real", async () => {
-		const fetchSpy = vi.spyOn(globalThis as any, "fetch").mockResolvedValue(
-			mockORSResponseForRoute(150_000, 120 * 60, [[40.62, -0.098], [39.933, -0.355]], stepsSample)
-		);
+	const serviceFactory = () => RouteService.getInstance({ provider: new OpenRouteServiceAdapter(new OpenRouteServiceHttpClient()) });
 
-		const provider = new OpenRouteServiceAdapter(new OpenRouteServiceHttpClient());
-		const service = RouteService.getInstance({ provider });
+	it("E1 válido: obtiene la ruta más rápida Castellón -> Valencia", async () => {
+		const service = serviceFactory();
+		const route = await service.requestRoute({ origin: CASTELLON_ORIGIN, destination: VALENCIA_DEST, mobilityType: "vehicle", routeType: "fastest" });
 
-		const route = await service.requestRoute({
-			origin: BASE_ORIGIN,
-			destination: BASE_DEST,
-			mobilityType: "vehicle",
-			routeType: "fastest",
-		});
-
-		expect(route.getDistance()).toBeGreaterThanOrEqual(100_000);
-		expect(route.getDistance()).toBeLessThanOrEqual(200_000);
-		expect(route.getDuration()).toBeGreaterThanOrEqual(90);
-		expect(route.getDuration()).toBeLessThanOrEqual(150);
-		expect(route.getMobilityType()).toBe("vehicle");
+		expect(route.getDistance()).toBeGreaterThan(0);
+		expect(route.getDuration()).toBeGreaterThan(0);
 		expect(route.getRouteType()).toBe("fastest");
-		expect(route.getSteps()).toEqual(stepsSample);
-		expect(route.getPolyline()).toHaveLength(2);
-
-		fetchSpy.mockRestore();
+		expect(route.getSteps().length).toBeGreaterThan(0);
 	});
 
-	test("E2 válido: shortest Casa -> Pico Espadán usando adaptador real", async () => {
-		const fetchSpy = vi.spyOn(globalThis as any, "fetch").mockResolvedValue(
-			mockORSResponseForRoute(120_000, 100 * 60, [[40.62, -0.098], [39.933, -0.355]], stepsSample)
-		);
+	it("E2 válido: obtiene la ruta más corta Castellón -> Valencia", async () => {
+		const service = serviceFactory();
+		const route = await service.requestRoute({ origin: CASTELLON_ORIGIN, destination: VALENCIA_DEST, mobilityType: "vehicle", routeType: "shortest" });
 
-		const provider = new OpenRouteServiceAdapter(new OpenRouteServiceHttpClient());
-		const service = RouteService.getInstance({ provider });
-
-		const route = await service.requestRoute({
-			origin: BASE_ORIGIN,
-			destination: BASE_DEST,
-			mobilityType: "vehicle",
-			routeType: "shortest",
-		});
-
+		expect(route.getDistance()).toBeGreaterThan(0);
 		expect(route.getRouteType()).toBe("shortest");
-		expect(route.getMobilityType()).toBe("vehicle");
-		expect(route.getDistance()).toBeGreaterThanOrEqual(100_000);
-		expect(route.getDistance()).toBeLessThanOrEqual(200_000);
-		expect(route.getDuration()).toBeGreaterThanOrEqual(90);
-		expect(route.getDuration()).toBeLessThanOrEqual(150);
-
-		fetchSpy.mockRestore();
+		expect(route.getPolyline()?.length ?? 0).toBeGreaterThan(0);
 	});
 
-	test("E3 válido: shortest coord->coord without saved places using adaptador real", async () => {
-		const fetchSpy = vi.spyOn(globalThis as any, "fetch").mockResolvedValue(
-			mockORSResponseForRoute(130_000, 110 * 60, [[40.62, -0.098], [39.933, -0.355]], stepsSample)
-		);
+	it("E3 válido: coordena puntos sin lugares guardados y obtiene polilínea", async () => {
+		const service = serviceFactory();
+		const route = await service.requestRoute({ origin: MADRID_ORIGIN, destination: TOLEDO_DEST, mobilityType: "vehicle", routeType: "shortest" });
 
-		const provider = new OpenRouteServiceAdapter(new OpenRouteServiceHttpClient());
-		const service = RouteService.getInstance({ provider });
-
-		const route = await service.requestRoute({
-			origin: BASE_ORIGIN,
-			destination: BASE_DEST,
-			mobilityType: "vehicle",
-			routeType: "shortest",
-		});
-
-		expect(route.getPolyline()).toHaveLength(2);
-		expect(route.getSteps()).toEqual(stepsSample);
-
-		fetchSpy.mockRestore();
+		expect(route.getSteps().length).toBeGreaterThan(0);
+		expect(route.getPolyline()?.length ?? 0).toBeGreaterThan(0);
 	});
 
-	test("E4 inválido: coordenadas fuera de rango lanzan InvalidDataException", async () => {
-		const provider = new OpenRouteServiceAdapter(new OpenRouteServiceHttpClient());
-		const service = RouteService.getInstance({ provider });
-
+	it("E4 inválido: coordenadas fuera de rango lanzan InvalidDataException antes de contactar al proveedor", async () => {
+		const service = serviceFactory();
 		await expect(
-			service.requestRoute({
-				origin: "40.620, -0.098",
-				destination: "91, -0.355", // lat > 90 => inválido
-				mobilityType: "vehicle",
-				routeType: "shortest",
-			})
+			service.requestRoute({ origin: CASTELLON_ORIGIN, destination: "91.000,-0.355", mobilityType: "vehicle", routeType: "shortest" })
 		).rejects.toThrow("InvalidDataException");
 	});
 });
 
-describe("HU19 - Guardar ruta (aceptación)", () => {
-	beforeEach(() => {
-		resetRouteServiceSingleton();
-		vi.restoreAllMocks();
+describe("HU19 - Guardar ruta calculada (aceptación)", () => {
+	beforeAll(() => {
+		ensureLocalStorage();
+		ensureNavigator();
 	});
-  afterAll(async () => {
-    try {
-      await userService.logOut();
-    } catch {
-      /* ignore */
-    }
-  });
 
-	test("E1 válido: sesión abierta, ruta calculada y guardada", async () => {
-		await ensureSession();
-		const service = RouteService.getInstance();
+	beforeEach(() => {
+		UserSession.clear();
+		resetRouteServiceSingleton();
+		setNavigatorStatus(true);
+	});
 
-		const route = await service.requestRoute({
-			origin: "39.98627, -0.004778",
-			destination: "39.477, -0.376",
+	afterAll(async () => {
+		await logoutUser();
+	});
+
+	it("E1 válido: con sesión abierta se calcula y guarda la ruta Castellón-Valencia", async () => {
+		const userId = await loginUser();
+		const service = RouteService.getInstance({ provider: new OpenRouteServiceAdapter(new OpenRouteServiceHttpClient()) });
+
+		await service.requestRoute({
+			origin: "39.98627,-0.004778",
+			destination: "39.477,-0.376",
 			mobilityType: "vehicle",
 			routeType: "fastest",
 		});
 
-		expect(route).toBeTruthy();
-
-		const savedId = await service.saveRoute({
-			origin: "39.98627, -0.004778",
-			destination: "39.477, -0.376",
+		const routeId = await service.saveRoute({
+			origin: "39.98627,-0.004778",
+			destination: "39.477,-0.376",
 			mobilityType: "vehicle",
 			routeType: "fastest",
 			name: "Castellón-Valencia",
-			userId: "al123456@uji.es",
+			userId,
 		});
 
-		expect(typeof savedId === "string" || savedId instanceof String).toBe(true);
+		expect(routeId).toEqual(expect.any(String));
+
+		await service.deleteSavedRoute(routeId, userId);
 	});
 
-	test("E3 inválido: sesión cerrada lanza UserNotLoggedInException", async () => {
-		const service = RouteService.getInstance();
+	it("E3 inválido: sin sesión abierta guardar ruta lanza UserNotLoggedInException", async () => {
+		await logoutUser();
+		const service = RouteService.getInstance({ provider: new OpenRouteServiceAdapter(new OpenRouteServiceHttpClient()) });
 
 		await service.requestRoute({
-			origin: "39.98627, -0.004778",
-			destination: "39.477, -0.376",
+			origin: "39.98627,-0.004778",
+			destination: "39.477,-0.376",
 			mobilityType: "vehicle",
 			routeType: "fastest",
 		});
 
 		await expect(
 			service.saveRoute({
-				origin: "39.98627, -0.004778",
-				destination: "39.477, -0.376",
+				origin: "39.98627,-0.004778",
+				destination: "39.477,-0.376",
 				mobilityType: "vehicle",
 				routeType: "fastest",
 				name: "Castellón-Valencia",

@@ -64,12 +64,10 @@ export class RouteFacade {
         const resolvedUserId = this.resolveUserId(options.userId);
 
         const now = typeof performance !== "undefined" ? () => performance.now() : () => Date.now();
-        const t0 = now();
         const preferencesPromise = this.preferencesService.get(resolvedUserId);
         const pricesPromise = this.loadPriceSnapshot();
 
         const preferences = await preferencesPromise;
-        const t1 = now();
 
         const plannerOptions = this.applyVehicleOverrides(this.stripFacadeFields(options), vehicle);
         const routePromise = this.service.requestRoute(plannerOptions);
@@ -81,14 +79,8 @@ export class RouteFacade {
                 return null;
             }),
         ]);
-        const t3 = now();
 
-        console.info("RouteFacade timing", {
-            loadPreferencesMs: Number((t1 - t0).toFixed(2)),
-            loadPricesMs: "parallel",
-            requestRouteMs: "parallel",
-            totalMs: Number((t3 - t0).toFixed(2)),
-        });
+    
 
         const canonicalConsumption =
             this.normalizeConsumption(plannerOptions.estimatedConsumption) ??

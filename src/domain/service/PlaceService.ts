@@ -6,8 +6,29 @@ import type { PlaceRepository } from    "../repository/PlaceRepository.js";
 import { UserSession } from "../session/UserSession.js";
 
 
-const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY ;
+const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY;
 const ORS_BASE = "/ors";
+const ORS_REMOTE_BASE = (import.meta.env.VITE_ORS_BASE_URL || "https://api.openrouteservice.org").replace(/\/$/, "");
+const FORCE_DIRECT_ORS =
+    import.meta.env.VITE_FORCE_DIRECT_ORS === "true" ||
+    Boolean((globalThis as Record<string, unknown>)?.process?.env?.VITEST);
+
+const resolveORSUrl = (path: string): string => {
+    const normalized = path.startsWith("/") ? path : `/${path}`;
+    if (!FORCE_DIRECT_ORS) {
+        return normalized;
+    }
+    const trimmed = normalized.startsWith(ORS_BASE) ? normalized.slice(ORS_BASE.length) || "/" : normalized;
+    return `${ORS_REMOTE_BASE}${trimmed}`;
+};
+
+const buildORSHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (FORCE_DIRECT_ORS && ORS_API_KEY) {
+        headers.Authorization = ORS_API_KEY;
+    }
+    return headers;
+};
 
 const PLACE_CACHE_KEY = (userId: string) => `places_cache_${userId}`;
 
@@ -153,7 +174,7 @@ export class PlaceService {
                     return;
                 }
             }
-            throw new Error("PlaceNotDeletedException");
+            throw new Error("PlaceNotSavedException");
         }
 
         
@@ -274,7 +295,10 @@ export class PlaceService {
             size: String(Math.max(1, limit)),
             });
 
-            const res = await fetch(`${ORS_BASE}/geocode/search?${params.toString()}`);
+            const res = await fetch(
+                resolveORSUrl(`${ORS_BASE}/geocode/search?${params.toString()}`),
+                { headers: buildORSHeaders() }
+            );
             const contentType = res.headers.get("content-type") ?? "";
 
                         if (!res.ok || !contentType.includes("application/json")) {
@@ -299,7 +323,10 @@ export class PlaceService {
                 size: "1",
             });
 
-            const res = await fetch(`${ORS_BASE}/geocode/reverse?${params.toString()}`);
+            const res = await fetch(
+                resolveORSUrl(`${ORS_BASE}/geocode/reverse?${params.toString()}`),
+                { headers: buildORSHeaders() }
+            );
             const contentType = res.headers.get("content-type") ?? "";
 
             if (!res.ok || !contentType.includes("application/json")) {

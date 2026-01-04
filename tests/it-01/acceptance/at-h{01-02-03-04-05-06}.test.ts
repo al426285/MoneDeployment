@@ -10,7 +10,6 @@ const BASE_USER = {
   password: "MiContrasena64",
 };
 
-const emailtest = `testuser${Date.now()}@test.com`;
 const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 const userService = UserService.getInstance();

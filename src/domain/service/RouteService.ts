@@ -35,22 +35,22 @@ const requireOnline = () => {
 
 
 export interface BaseRouteOptions {
-	origin: string;
-	destination: string;
-	mobilityType: string;
-	routeType: string;
+    origin: string;
+    destination: string;
+    mobilityType: string;
+    routeType: string;
 }
 
 export interface RouteRequestOptions extends BaseRouteOptions {
-	origin: string;
-	destination: string;
-	mobilityType: string;
-	routeType: string;
-	fuelType?: VehicleEnergySource;
-	estimatedConsumption?: {
-		value: number;
-		unit: ConsumptionUnit;
-	};
+    origin: string;
+    destination: string;
+    mobilityType: string;
+    routeType: string;
+    fuelType?: VehicleEnergySource;
+    estimatedConsumption?: {
+        value: number;
+        unit: ConsumptionUnit;
+    };
 }
 
 export interface RouteServiceDeps {
@@ -58,8 +58,8 @@ export interface RouteServiceDeps {
     repository?: RouteRepository;
 }
 export interface SaveRouteOptions extends BaseRouteOptions {
-	name: string;
-	userId?: string;
+    name: string;
+    userId?: string;
     originLabel?: string;
     destinationLabel?: string;
     vehicle?: any;
@@ -85,7 +85,7 @@ export class RouteService {
     }
 
 
-	async requestRoute(options: RouteRequestOptions): Promise<IRouteData> {
+    async requestRoute(options: RouteRequestOptions): Promise<IRouteData> {
         requireOnline();
         this.ensureRequiredFields(options);
 
@@ -119,11 +119,12 @@ export class RouteService {
                 msg.includes("fetch") ||
                 msg.includes("internal server error")
             ) {
+                console.log("RouteService.requestRoute network error", msg);
                 throw new Error("No se pudo calcular la ruta. Comprueba tu conexión a internet y vuelve a intentarlo.");
             }
             throw err;
         }
-	}
+    }
 
     async saveRoute(options: SaveRouteOptions): Promise<string> {
         requireOnline();
@@ -162,6 +163,10 @@ export class RouteService {
     async deleteSavedRoute(routeId: string, userId?: string): Promise<void> {
         requireOnline();
         const resolvedId = this.resolveUserId(userId);
+        const existing = await this.repository.getRoute(resolvedId, routeId);
+        if (!existing) {
+            throw new Error("RouteNotFoundException");
+        }
         await this.repository.deleteRoute(resolvedId, routeId);
         await this.refreshRouteCache(resolvedId);
     }

@@ -59,7 +59,7 @@ describe("HU24 - Preferencias de unidades aceptación", () => {
 		}
 	}, HOOK_TIMEOUT);
 
-	it("HU24 E1: establece km como unidad de distancia ", async () => {
+	it("HU26 E1: establece km como unidad de distancia ", async () => {
 		await preferencesService.save(userId, { distanceUnit: "km" });
 
 		const prefs = await preferencesService.get(userId);
@@ -67,7 +67,7 @@ describe("HU24 - Preferencias de unidades aceptación", () => {
 		expect(prefs.combustionConsumptionUnit).toBe("l/100km");
 	});
 
-	it("HU24 E2: rechaza unidades inválidas para distancia (repo real)", async () => {
+	it("HU26 E2: rechaza unidades inválidas para distancia", async () => {
 		await expect(preferencesService.save(userId, { distanceUnit: "cm" as any })).rejects.toThrow(
 			"InvalidDataException"
 		);

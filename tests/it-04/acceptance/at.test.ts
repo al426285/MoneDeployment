@@ -108,6 +108,25 @@ describe("HU20/HU21/HU22 aceptación ", () => {
 		expect(remaining.find((r) => r.id === r1)).toBeDefined();
 	});
 
+	it("HU21 E2: eliminar ruta inexistente lanza RouteNotFoundException", async () => {
+		const service = RouteService.getInstance();
+		await clearUserRoutes(service, userId);
+		const existingRouteId = await service.saveRoute({
+			name: "Castellón-Valencia",
+			origin: "39.98627,-0.004778",
+			destination: "39.477,-0.376",
+			mobilityType: "vehicle",
+			routeType: "fastest",
+			userId,
+		});
+
+		await expect(service.deleteSavedRoute("Madrid-Toledo", userId)).rejects.toThrowError("RouteNotFoundException");
+
+		const remaining = await service.listSavedRoutes(userId);
+		expect(remaining).toHaveLength(1);
+		expect(remaining.find((r) => r.id === existingRouteId)).toBeDefined();
+	});
+
 	it("HU22 E1: edita ruta existente con datos válidos (repo real)", async () => {
 		const service = RouteService.getInstance();
 		await clearUserRoutes(service, userId);

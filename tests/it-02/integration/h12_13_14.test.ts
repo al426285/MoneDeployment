@@ -100,7 +100,7 @@ describe("H12-H14: Vehicles integration", () => {
 			sessionSpy.mockReturnValueOnce(undefined as any);
 
 			await expect(service.getVehicles(undefined)).rejects.toThrow(
-				"UserNotFound: User session not found. Provide an explicit userId or ensure the session is logged in."
+				"UserNotFound"
 			);
 
 			expect(repo.getVehiclesByOwnerId).not.toHaveBeenCalled();
