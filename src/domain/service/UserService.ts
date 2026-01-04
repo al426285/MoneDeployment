@@ -196,7 +196,7 @@ export class UserService {
   async deleteUser(email: string, password: string): Promise<boolean> {
     try {
       const session = UserSession.loadFromCache();
-      
+
       if (!session) throw new Error("UserNotFound");
 
 
@@ -220,7 +220,7 @@ export class UserService {
         // Both deleted successfully: clear local session
         try {
           UserSession.clear();
-        } catch {/* ignore */}
+        } catch {/* ignore */ }
         return true;
       } catch (authErr) {
         // Auth delete failed — try to restore Firestore document
@@ -416,6 +416,9 @@ export class UserService {
     const existing = await this.userRepository.getUserByEmail(normalizedEmail);
     const targetEmail = existing?.getEmail?.() ?? normalizedEmail;
 
+    //Para poder hacer la prueba de que salta el error de usuario no encontrado necesitamos darle permisos a cualquier cliente para buscar usuarios por email, algo inseguro en produccion. Es mejor no hacer esta comprobación y enviarle el enlace directamente.
+    // const existing = await this.userRepository.getUserByEmail(email);
+    // if (!existing) throw new Error("UserNotFound");
     try {
       await this.authProvider.sendRecoveryEmail(targetEmail);
     } catch (error) {

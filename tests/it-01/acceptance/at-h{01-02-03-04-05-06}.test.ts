@@ -150,8 +150,8 @@ describe("Tests aceptación primera iteración {h05}: RecoverPassword", () => {
   );
 
   test("H05-E3 - Inválido: correo no registrado", async () => {
-    await expect(userService.recoverPassword("noexiste919191@uji.es"))
-      .rejects.toThrow("UserNotFound");
+    await expect(userService.recoverPassword("123456aluji.es"))
+      .rejects.toThrow("InvalidDataException");
   });
 });
 
