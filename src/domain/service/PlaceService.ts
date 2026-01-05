@@ -323,10 +323,17 @@ export class PlaceService {
                 size: "1",
             });
 
-            const res = await fetch(
-                resolveORSUrl(`${ORS_BASE}/geocode/reverse?${params.toString()}`),
-                { headers: buildORSHeaders() }
-            );
+
+                  const res = await fetch(
+  `${ORS_BASE}/geocode/search?${params.toString()}`,
+  {
+    headers: {
+      Authorization: import.meta.env.VITE_ORS_API_KEY,
+      Accept: "application/json",
+    },
+  }
+);
+
             const contentType = res.headers.get("content-type") ?? "";
 
             if (!res.ok || !contentType.includes("application/json")) {
