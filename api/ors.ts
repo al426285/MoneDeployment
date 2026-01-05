@@ -1,5 +1,5 @@
 export async function POST(req: Request) {
-  const { profile, body } = await req.json(); // body enviado desde frontend
+   const { profile, coordinates, preference, instructions, units } = await req.json();
 
   const response = await fetch(
     `https://api.openrouteservice.org/v2/directions/${profile}/geojson`,
@@ -20,3 +20,4 @@ export async function POST(req: Request) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
