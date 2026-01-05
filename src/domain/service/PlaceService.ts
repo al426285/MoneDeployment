@@ -7,7 +7,7 @@ import { UserSession } from "../session/UserSession.js";
 
 
 const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY;
-const ORS_BASE = "/ors";
+const ORS_BASE = "https://api.openrouteservice.org";
 const ORS_REMOTE_BASE = (import.meta.env.VITE_ORS_BASE_URL || "https://api.openrouteservice.org").replace(/\/$/, "");
 const FORCE_DIRECT_ORS =
     import.meta.env.VITE_FORCE_DIRECT_ORS === "true" ||
