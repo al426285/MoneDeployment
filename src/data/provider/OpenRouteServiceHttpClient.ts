@@ -28,8 +28,7 @@ export class OpenRouteServiceHttpClient {
 
     const profile = PROFILE_MAP[mobilityType?.toLowerCase()] ?? mobilityType;
     const preference = ROUTE_PREFERENCE_MAP[routeType?.toLowerCase()] ?? "fastest";
-    const ORS_BASE = "https://api.openrouteservice.org";
-     const url = `${ORS_BASE}/ors/v2/directions/${profile}/geojson`;
+    const url = `/api/ors`;
 
     return fetch(url, {
       method: "POST",
@@ -37,6 +36,7 @@ export class OpenRouteServiceHttpClient {
         "content-type": "application/json",
       },
       body: JSON.stringify({
+        profile,
         coordinates: [
           [originLng, originLat],
           [destLng, destLat],
